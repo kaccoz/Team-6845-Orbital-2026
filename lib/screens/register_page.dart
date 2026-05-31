@@ -30,7 +30,7 @@ class _RegisterPageState extends State<RegisterPage> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
-          builder: (context) => const HomePage(),
+          builder: (context) => HomePage(),
         ),
         (route) => false,
       );
@@ -209,7 +209,7 @@ class _RegisterPageState extends State<RegisterPage> {
     ),
     GestureDetector(
       onTap: () {
-        print("LOGIN LINK TAPPED");
+        debugPrint("LOGIN LINK TAPPED");
         Navigator.push(
           context,
           MaterialPageRoute(

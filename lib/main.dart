@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:crumb/screens/register_page.dart';
+import 'package:crumb/services/auth_layout.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,9 +18,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: RegisterPage(),
+      home: AuthLayout(),
     );
   }
 }

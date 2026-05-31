@@ -1,98 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:crumb/screens/register_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
-  void continueToRegister() {
-    // TODO: Navigate to register/login page
+  void continueToRegister(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RegisterPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEAE8D7),
-      body: SingleChildScrollView(
-        child: Column(
-          children: <Widget>[
-            Container(
-              height: 400,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('lib/assets/images/background.png'),
-                  fit: BoxFit.fill,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('lib/assets/images/background.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Welcome!",
+                style: TextStyle(
+                  color: Color(0xFF8B6B4A),
+                  fontSize: 50,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              child: Stack(
-                children: <Widget>[
-                  Positioned(
-                    left: -50,
-                    width: 500,
-                    height: 600,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage('lib/assets/images/crumb-1.png'),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.all(30.0),
-              child: Column(
-                children: <Widget>[
+              const SizedBox(height: 28),
+
+              const Text(
+                "Ready to become the best\nversion of yourself?",
+                style: TextStyle(
+                  color: Color(0xFFA59A8D),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(height: 40),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
                   const Text(
-                    "Welcome!",
+                    "Continue",
                     style: TextStyle(
-                      color: Color(0xFF8B6B4A),
-                      fontSize: 32,
+                      color: Color(0xFFA59A8D),
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(width: 12),
 
-                  const Text(
-                    "Ready to become the best version of yourself?",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 31.7,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  SizedBox(
-                    height: 50,
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: continueToRegister,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B6B4A),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        elevation: 0,
+                  GestureDetector(
+                    onTap: () => continueToRegister(context),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD8B98C),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Text(
-                        "Continue",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        color: Color(0xFF5A3722),
+                        size: 34,
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

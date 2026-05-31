@@ -1,8 +1,117 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:crumb/screens/profile_page.dart';
+import 'package:crumb/services/habit_service.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  HomePage({super.key});
+
+  final HabitService habitService = HabitService();
+
+  void showAddHabitDialog(BuildContext context) {
+    final TextEditingController habitController = TextEditingController();
+    final TextEditingController durationController = TextEditingController();
+    String errorMessage = '';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Add Habit"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: habitController,
+                    decoration: const InputDecoration(labelText: "Habit"),
+                  ),
+                  TextField(
+                    controller: durationController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: "Duration",
+                      suffixText: "min",
+                    ),
+                  ),
+
+                  if (errorMessage.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      errorMessage,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (habitController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        errorMessage = "Please enter a habit.";
+                      });
+                      return;
+                    }
+
+                    if (durationController.text.trim().isEmpty) {
+                      setDialogState(() {
+                        errorMessage = "Please enter duration in minutes.";
+                      });
+                      return;
+                    }
+
+                    habitService.addHabit(
+                      habitController.text.trim(),
+                      "${durationController.text.trim()} min",
+                    );
+
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Add"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void confirmDeleteHabit(BuildContext context, String habitId) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Delete Habit"),
+          content: const Text("Are you sure you want to delete this habit?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                habitService.deleteHabit(habitId);
+                Navigator.pop(context);
+              },
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,37 +124,87 @@ class HomePage extends StatelessWidget {
         centerTitle: true,
       ),
 
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.emoji_events_outlined,
-              size: 80,
-              color: Color(0xFF8B6B4A),
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Welcome to Crumb!",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF8B6B4A),
+      body: StreamBuilder(
+        stream: habitService.getHabits(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final habits = snapshot.data!.docs;
+
+          if (habits.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.emoji_events_outlined,
+                    size: 80,
+                    color: Color(0xFF8B6B4A),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Welcome to Crumb!",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF8B6B4A),
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    "Try adding a habit!",
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                ],
               ),
-            ),
-            SizedBox(height: 10),
-            Text(
-              "Your habits start here.",
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          ],
-        ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: habits.length,
+            itemBuilder: (context, index) {
+              final habit = habits[index];
+              final data = habit.data();
+
+              return Card(
+                child: ListTile(
+                  title: Text(data['title']),
+                  subtitle: Text(data['duration']),
+                  leading: Checkbox(
+                    value: data['completed'],
+                    onChanged: (value) {
+                      habitService.toggleHabit(habit.id, value!);
+                    },
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete),
+                    color: const Color(0xFF6F5643),
+                    onPressed: () {
+                      confirmDeleteHabit(context, habit.id);
+                    },
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF8B6B4A),
+        onPressed: () {
+          showAddHabitDialog(context);
+        },
+        child: const Icon(Icons.add),
       ),
 
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF8B6B4A),
-        unselectedItemColor: Colors.grey,
+        backgroundColor: const Color(0xFF8B6B4A),
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),

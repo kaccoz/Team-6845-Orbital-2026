@@ -62,4 +62,15 @@ class AuthService {
     await currentUser!.reauthenticateWithCredential(credential);
     await currentUser!.updatePassword(newPassword);
   }
+
+ Future<void> changeEmail({
+    required String currentEmail,
+    required String newEmail,
+    required String password,
+  }) async {
+    AuthCredential credential = 
+        EmailAuthProvider.credential(email: currentEmail, password: password);
+    await currentUser!.reauthenticateWithCredential(credential);
+    await currentUser!.verifyBeforeUpdateEmail(newEmail); 
+  }
 }

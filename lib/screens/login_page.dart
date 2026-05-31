@@ -21,7 +21,7 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void SignIn() async {
+  void signIn() async {
     if (controllerEmail.text.trim().isEmpty ||
         controllerPassword.text.trim().isEmpty) {
       setState(() {
@@ -39,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
+          MaterialPageRoute(builder: (context) => HomePage()),
           (route) => false,
         );
       }
@@ -132,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
                 height: 50,
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: SignIn,
+                  onPressed: signIn,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF8B6B4A),
                     shape: RoundedRectangleBorder(
