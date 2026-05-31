@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crumb/services/auth_service.dart';
+import 'package:crumb/screens/home_page.dart';
+import 'package:crumb/screens/login_page.dart';
 
-final ValueNotifier<AuthService> authServices =
-    ValueNotifier<AuthService>(AuthService());
+
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -19,17 +20,27 @@ class _RegisterPageState extends State<RegisterPage> {
   String errorMessage = '';
 
   Future<void> register() async {
-    try {
-      await authServices.value.createAccount(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+  try {
+    await authService.value.createAccount(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const HomePage(),
+        ),
+        (route) => false,
       );
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        errorMessage = e.message ?? "There is an error";
-      });
     }
+  } on FirebaseAuthException catch (e) {
+    setState(() {
+      errorMessage = e.message ?? "There is an error";
+    });
   }
+}
 
   @override
   void dispose() {
@@ -189,18 +200,34 @@ class _RegisterPageState extends State<RegisterPage> {
 
                   const SizedBox(height: 20),
 
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Text(
-                      "Already have an account? Login",
-                      style: TextStyle(
-                        color: Color(0xFF8B6B4A),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    const Text(
+      "Already have an account? ",
+      style: TextStyle(color: Colors.grey),
+    ),
+    GestureDetector(
+      onTap: () {
+        print("LOGIN LINK TAPPED");
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const LoginPage(),
+          ),
+        );
+      },
+      child: const Text(
+        "Login",
+        style: TextStyle(
+          color: Color(0xFF8B6B4A),
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.underline,
+        ),
+      ),
+    ),
+  ],
+),
                 ],
               ),
             ),
