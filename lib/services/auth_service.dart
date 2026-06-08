@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
@@ -82,5 +83,28 @@ class AuthService {
         EmailAuthProvider.credential(email: currentEmail, password: password);
     await currentUser!.reauthenticateWithCredential(credential);
     await currentUser!.verifyBeforeUpdateEmail(newEmail); 
+  }
+
+  Future<void> updateProfilePicture(String base64String) async {
+  if (currentUser == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(currentUser!.uid)
+      .set({
+        'photoUrl': base64String,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+  }
+
+  Future<void> deleteProfilePicture() async {
+    if (currentUser == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser!.uid)
+        .update({
+          'photoUrl': FieldValue.delete(),
+        });
   }
 }
