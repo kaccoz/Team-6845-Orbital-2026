@@ -22,8 +22,18 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    return await firebaseAuth.createUserWithEmailAndPassword(
+    UserCredential userCredential = await firebaseAuth.createUserWithEmailAndPassword(
         email: email, password: password);
+    
+    User? newUSer = userCredential.user;
+
+    if (newUSer != null) {
+      await newUSer.updateDisplayName(email.split('@')[0]);
+
+      await newUSer.reload();
+    }
+
+    return userCredential;
   }
 
   Future<void> signOut() async {
