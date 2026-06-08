@@ -2,17 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:crumb/screens/profile_page.dart';
 import 'package:crumb/services/habit_service.dart';
+import 'package:crumb/screens/habits_page.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});
-
   final HabitService habitService = HabitService();
-
   void showAddHabitDialog(BuildContext context) {
     final TextEditingController habitController = TextEditingController();
     final TextEditingController durationController = TextEditingController();
     String errorMessage = '';
-
     showDialog(
       context: context,
       builder: (context) {
@@ -36,7 +34,6 @@ class HomePage extends StatelessWidget {
                       suffixText: "min",
                     ),
                   ),
-
                   if (errorMessage.isNotEmpty) ...[
                     const SizedBox(height: 10),
                     Text(
@@ -61,19 +58,16 @@ class HomePage extends StatelessWidget {
                       });
                       return;
                     }
-
                     if (durationController.text.trim().isEmpty) {
                       setDialogState(() {
                         errorMessage = "Please enter duration in minutes.";
                       });
                       return;
                     }
-
                     habitService.addHabit(
                       habitController.text.trim(),
                       "${durationController.text.trim()} min",
                     );
-
                     Navigator.pop(context);
                   },
                   child: const Text("Add"),
@@ -113,6 +107,101 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  void showEditHabitDialog(BuildContext context, String habitId, Map data) {
+    final TextEditingController habitController = TextEditingController(
+      text: data['title'],
+    );
+    final TextEditingController durationController = TextEditingController(
+      text: data['duration'].replaceAll(" min", ""),
+    );
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Habit"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: habitController,
+                decoration: const InputDecoration(labelText: "Habit"),
+              ),
+              TextField(
+                controller: durationController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Duration",
+                  suffixText: "min",
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                habitService.updateHabit(
+                  habitId,
+                  habitController.text.trim(),
+                  "${durationController.text.trim()} min",
+                );
+                Navigator.pop(context);
+              },
+              child: const Text("Update"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showHabitOptions(BuildContext context, String habitId, Map data) {
+    bool includeInStreak = data['includeInStreak'] ?? false;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(data['title']),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Duration: ${data['duration']}"),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Include in streak"),
+                      Switch(
+                        value: includeInStreak,
+                        onChanged: (value) {
+                          setState(() {
+                            includeInStreak = value;
+                          });
+                          habitService.toggleStreak(habitId, value);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Close"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,16 +212,13 @@ class HomePage extends StatelessWidget {
         title: const Text("Crumb"),
         centerTitle: true,
       ),
-
       body: StreamBuilder(
-        stream: habitService.getHabits(),
+        stream: habitService.habits.snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-
           final habits = snapshot.data!.docs;
-
           if (habits.isEmpty) {
             return const Center(
               child: Column(
@@ -161,30 +247,44 @@ class HomePage extends StatelessWidget {
               ),
             );
           }
-
           return ListView.builder(
             padding: const EdgeInsets.all(20),
             itemCount: habits.length,
             itemBuilder: (context, index) {
               final habit = habits[index];
               final data = habit.data();
-
               return Card(
                 child: ListTile(
+                  onTap: () {
+                    showHabitOptions(context, habit.id, data);
+                  },
                   title: Text(data['title']),
                   subtitle: Text(data['duration']),
                   leading: Checkbox(
                     value: data['completed'],
-                    onChanged: (value) {
-                      habitService.toggleHabit(habit.id, value!);
+                    onChanged: (value) async {
+                      await habitService.toggleHabit(habit.id, value!);
+
                     },
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete),
-                    color: const Color(0xFF6F5643),
-                    onPressed: () {
-                      confirmDeleteHabit(context, habit.id);
-                    },
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        color: const Color(0xFF6F5643),
+                        onPressed: () {
+                          showEditHabitDialog(context, habit.id, data);
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        color: const Color(0xFF6F5643),
+                        onPressed: () {
+                          confirmDeleteHabit(context, habit.id);
+                        },
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -192,7 +292,6 @@ class HomePage extends StatelessWidget {
           );
         },
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF8B6B4A),
         onPressed: () {
@@ -200,17 +299,26 @@ class HomePage extends StatelessWidget {
         },
         child: const Icon(Icons.add),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF8B6B4A),
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.check_circle),
+            label: "Habits",
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
         onTap: (index) {
           if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => HabitsPage()),
+            );
+          }
+          if (index == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ProfilePage()),
