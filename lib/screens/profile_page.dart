@@ -15,12 +15,14 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController controllerEmail = TextEditingController();
   final TextEditingController controllerPassword = TextEditingController();
 
-  final TextEditingController controllerCurrentPassword =
-      TextEditingController();
+  final TextEditingController controllerCurrentPassword = TextEditingController();
   final TextEditingController controllerNewPassword = TextEditingController();
 
   final TextEditingController controllerCurrentEmail = TextEditingController();
   final TextEditingController controllerNewEmail = TextEditingController();
+
+  final TextEditingController controllerCurrentUsername = TextEditingController();
+  final TextEditingController controllerNewUsername = TextEditingController();
 
   static const Color backgroundColor = Color(0xFFECEAE0);
   static const Color primaryBrown = Color(0xFF6F5643);
@@ -42,16 +44,18 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
   
-  void updatePassword() async {
+  Future<void> updatePassword() async {
     try {
+    
       await authService.value.resetPasswordFromCurrentPassword(
         currentPassword: controllerCurrentPassword.text.trim(),
         newPassword: controllerNewPassword.text.trim(),
-        email: controllerEmail.text.trim(),
+        email: controllerCurrentEmail.text.trim(),
       );
       showSnackBarSuccess('Password changed successfully!');
 
-      // Clean up controllers after a successful password change
+      // clean up after successful password change
+      controllerCurrentEmail.clear();
       controllerCurrentPassword.clear();
       controllerNewPassword.clear();
     } catch (e) {
@@ -61,7 +65,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void updateEmail() async {
+  Future<void> updateEmail() async {
     try {
       await authService.value.changeEmail(
         currentEmail: controllerCurrentEmail.text.trim(),
@@ -82,15 +86,29 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void updateUsername() async {
+    try {
+      await authService.value.updateUsername(
+        username: controllerNewUsername.text.trim(),
+      );
+      showSnackBarSuccess('Username updated successfully!');
+
+      controllerNewUsername.clear();
+    } catch (e) {
+      showSnackBarFailure(
+        'Failed to update username. Please try again.',
+      );
+  }
+  }
+
   void showSnackBarSuccess(String message) {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        // 💡 Removed 'const' here because message changes dynamically
         backgroundColor: primaryBrown,
         behavior: SnackBarBehavior.floating,
         content: Text(
-          message, // 🔄 Now uses the passed-in custom string!
+          message, 
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -105,11 +123,10 @@ class _ProfilePageState extends State<ProfilePage> {
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        // 💡 Removed 'const' here too
         backgroundColor: warningRed,
         behavior: SnackBarBehavior.floating,
         content: Text(
-          message, // 🔄 Now uses the passed-in custom string!
+          message, 
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -134,10 +151,10 @@ class _ProfilePageState extends State<ProfilePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: controllerEmail,
+                controller: controllerCurrentEmail, // 💡 Make sure this matches!
                 decoration: const InputDecoration(
-                  labelText: 'Confirm Email',
-                  labelStyle: TextStyle(color: primaryBrown),
+                labelText: 'Confirm Email',
+                labelStyle: TextStyle(color: primaryBrown),
                 ),
               ),
               TextField(
@@ -160,7 +177,13 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                controllerCurrentEmail.clear();
+                controllerCurrentPassword.clear();
+                controllerNewPassword.clear();
+                
+                Navigator.pop(context);
+              },
               child: const Text(
                 'Cancel',
                 style: TextStyle(color: primaryBrown),
@@ -168,10 +191,19 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: primaryBrown),
-              onPressed: () {
-                Navigator.pop(context); // Close dialog window overlay
-                updatePassword(); // Fire off your Firebase execution method!
-              },
+              onPressed: () async {
+                if (controllerCurrentEmail.text.trim().isNotEmpty &&
+                    controllerCurrentPassword.text.trim().isNotEmpty &&
+                    controllerNewPassword.text.trim().isNotEmpty) {
+                      await updatePassword();
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    } else {
+                      showSnackBarFailure('Please fill in all fields.');
+                    }
+                },
               child: const Text(
                 'Confirm',
                 style: TextStyle(color: Colors.white),
@@ -222,7 +254,13 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () { 
+                controllerCurrentEmail.clear();
+                controllerNewEmail.clear();
+                controllerPassword.clear();
+                
+                Navigator.pop(context);
+              },
               child: const Text(
                 'Cancel',
                 style: TextStyle(color: primaryBrown),
@@ -230,9 +268,18 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: primaryBrown),
-              onPressed: () {
-                Navigator.pop(context);
-                updateEmail(); // Calls your existing logic
+              onPressed: () async {
+                if (controllerCurrentEmail.text.trim().isNotEmpty &&
+                    controllerNewEmail.text.trim().isNotEmpty &&
+                    controllerPassword.text.trim().isNotEmpty) {
+                      await updateEmail();
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                      }
+                    } else {
+                      showSnackBarFailure('Please fill in all fields.');
+                    }
               },
               child: const Text(
                 'Confirm',
@@ -244,6 +291,72 @@ class _ProfilePageState extends State<ProfilePage> {
       },
     );
   }
+
+  void _showUsernameUpdateDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: backgroundColor,
+          title: const Text(
+            'Update Username',
+            style: TextStyle(color: primaryBrown, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controllerNewUsername,
+                decoration: const InputDecoration(
+                  labelText: 'New Username',
+                  labelStyle: TextStyle(color: primaryBrown),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                controllerNewUsername.clear();
+
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: primaryBrown),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: primaryBrown),
+              onPressed: () async {
+                String newUsername = controllerNewUsername.text.trim();
+                if (newUsername.isNotEmpty) {
+                  try {
+                    await authService.value.updateUsername(username: newUsername);
+                    await authService.value.currentUser!.reload(); 
+                    setState(() {});
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      showSnackBarSuccess('Username updated successfully!');
+                    }
+                  } catch (e) {
+                    debugPrint(e.toString());
+                    showSnackBarFailure('Failed to update username. Please try again.');
+                  }
+                }
+              },
+              child: const Text(
+                'Confirm',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   @override
   void dispose() {
@@ -323,8 +436,8 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(height: 16),
 
               // USERNAME
-              const Text(
-                'User888',
+              Text(
+                authService.value.currentUser?.displayName ?? 'Username',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w900,
@@ -343,16 +456,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 child: Column(
                   children: [
-                    _buildMenuRow('Update Username', () {
-                      // Add username change dialog here later
-                    }),
+                    _buildMenuRow('Update Username', _showUsernameUpdateDialog),
                     const Divider(
                       color: primaryBrown,
                       thickness: 1,
                       height: 24,
                     ),
 
-                    // LINKED RIGHT HERE: Triggering the change password overlay popup!
                     _buildMenuRow('Change Password', _showPasswordChangeDialog),
 
                     const Divider(
@@ -437,7 +547,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         ElevatedButton(
           onPressed:
-              onUpdatePressed, // Runs the specific function when clicked!
+              onUpdatePressed, // runs function when clicked
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryBrown,
             foregroundColor: cardColor,
