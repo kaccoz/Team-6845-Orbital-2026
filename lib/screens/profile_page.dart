@@ -41,7 +41,7 @@ class _ProfilePageState extends State<ProfilePage> {
       debugPrint(e.message);
     }
   }
-
+  
   void updatePassword() async {
     try {
       await authService.value.resetPasswordFromCurrentPassword(
