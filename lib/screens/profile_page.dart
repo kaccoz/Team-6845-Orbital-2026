@@ -29,6 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController controllerNewUsername = TextEditingController();
 
   File? _profileImage;
+  String? _dbBase64Image;
   bool _isUploading = false;
   bool _hasProfilePicture = false;
   final ImagePicker _picker = ImagePicker();
@@ -51,6 +52,7 @@ class _ProfilePageState extends State<ProfilePage> {
       if (doc.exists && doc.data()?['photoUrl'] != null) {
         setState(() {
           _hasProfilePicture = true; 
+          _dbBase64Image = doc.data()?['photoUrl'];
         });
       }
     }
@@ -126,6 +128,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         _profileImage = null; 
+        _dbBase64Image = null;
         _hasProfilePicture = false; // Photo removed! Flip flag to false
       });
 
@@ -466,11 +469,13 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   ImageProvider? _getProfileImageProvider() {
-  if (_profileImage != null) {
-    return FileImage(_profileImage!);
-  }
-
-  return null;
+    if (_profileImage != null) {
+      return FileImage(_profileImage!); 
+    }
+    if (_dbBase64Image != null && _dbBase64Image!.isNotEmpty) {
+      return MemoryImage(base64Decode(_dbBase64Image!));
+    }
+    return null; 
   }
 
   @override
@@ -556,12 +561,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: CircleAvatar(
                     radius: 80,
                     backgroundColor: cardColor,
-                    backgroundImage: _getProfileImageProvider(), // 💡 Clean helper method call
+                    backgroundImage: _getProfileImageProvider(), 
                     child: _isUploading
                         ? const CircularProgressIndicator(
                             valueColor: AlwaysStoppedAnimation<Color>(primaryBrown),
                           )
-                        : _profileImage == null && authService.value.currentUser?.photoURL == null
+                        : (!_hasProfilePicture && _profileImage == null)
                             ? const Icon(Icons.camera_alt, size: 35, color: primaryBrown)
                             : null,
                   ),
