@@ -1,5 +1,9 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crumb/services/auth_service.dart';
 import 'package:crumb/screens/welcome_page.dart';
 
@@ -24,10 +28,114 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController controllerCurrentUsername = TextEditingController();
   final TextEditingController controllerNewUsername = TextEditingController();
 
+  File? _profileImage;
+  bool _isUploading = false;
+  bool _hasProfilePicture = false;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingProfilePicture();
+  }
+
   static const Color backgroundColor = Color(0xFFECEAE0);
   static const Color primaryBrown = Color(0xFF6F5643);
   static const Color cardColor = Color(0xFFCBB28A);
   static const Color warningRed = Color(0xFFB45B52);
+
+  Future<void> _checkExistingProfilePicture() async {
+    final user = authService.value.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data()?['photoUrl'] != null) {
+        setState(() {
+          _hasProfilePicture = true; 
+        });
+      }
+    }
+  }
+
+  Future<void> _chooseImage() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: primaryBrown),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickAndUploadImage();
+                },
+              ),
+              if (_hasProfilePicture) 
+                ListTile(
+                  leading: const Icon(Icons.delete, color: warningRed),
+                  title: const Text('Remove Current Photo', style: TextStyle(color: warningRed)),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _removeImage();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 25,
+        maxWidth: 300,
+        maxHeight: 300,
+      );
+      
+      if (pickedFile != null) {
+        setState(() => _isUploading = true);
+
+        final bytes = await pickedFile.readAsBytes();
+        final String base64Image = base64Encode(bytes);
+
+        await authService.value.updateProfilePicture(base64Image);
+        
+        setState(() {
+          _profileImage = File(pickedFile.path);
+          _hasProfilePicture = true; 
+        });
+
+        if (mounted) showSnackBarSuccess('Profile picture updated!');
+      }
+    } catch (e) {
+      if (mounted) showSnackBarFailure('Failed to update profile picture.');
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  Future<void> _removeImage() async {
+    try {
+      setState(() => _isUploading = true);
+
+      await authService.value.deleteProfilePicture();
+
+      setState(() {
+        _profileImage = null; 
+        _hasProfilePicture = false; // Photo removed! Flip flag to false
+      });
+
+      if (mounted) showSnackBarSuccess('Profile picture removed.');
+    } catch (e) {
+      if (mounted) showSnackBarFailure('Failed to remove profile picture.');
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
 
   void logout() async {
     try {
@@ -357,6 +465,13 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  ImageProvider? _getProfileImageProvider() {
+  if (_profileImage != null) {
+    return FileImage(_profileImage!);
+  }
+
+  return null;
+  }
 
   @override
   void dispose() {
@@ -366,6 +481,8 @@ class _ProfilePageState extends State<ProfilePage> {
     controllerNewPassword.dispose();
     controllerCurrentEmail.dispose();
     controllerNewEmail.dispose();
+    controllerCurrentUsername.dispose();
+    controllerNewUsername.dispose();
     super.dispose();
   }
 
@@ -379,61 +496,78 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // HEADER ROW
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Icon(Icons.menu, size: 32, color: primaryBrown),
-                  const Text(
-                    'Profile',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: primaryBrown,
+              
+              SizedBox(
+                height: 40,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: primaryBrown,
+                      ),
                     ),
+
+                    const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Icon(Icons.menu, size: 32, color: primaryBrown),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3E332E),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Row(
-                      children: [
-                        Text('🔥', style: TextStyle(fontSize: 16)),
-                        SizedBox(width: 4),
-                        Text(
-                          '24',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                  
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3E332E),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('🔥', style: TextStyle(fontSize: 16)),
+                          SizedBox(width: 4),
+                          Text(
+                            '24',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
+                ),
               ),
-              const SizedBox(height: 32),
+
+              const SizedBox(height: 15),
 
               // AVATAR
-              Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: primaryBrown, width: 8),
-                  image: const DecorationImage(
-                    image: NetworkImage('https://placehold.co/150'),
-                    fit: BoxFit.cover,
+              GestureDetector(
+                onTap: _chooseImage,
+                child: CircleAvatar(
+                  radius: 88,
+                  backgroundColor: primaryBrown,
+                  child: CircleAvatar(
+                    radius: 80,
+                    backgroundColor: cardColor,
+                    backgroundImage: _getProfileImageProvider(), // 💡 Clean helper method call
+                    child: _isUploading
+                        ? const CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(primaryBrown),
+                          )
+                        : _profileImage == null && authService.value.currentUser?.photoURL == null
+                            ? const Icon(Icons.camera_alt, size: 35, color: primaryBrown)
+                            : null,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 15),
 
               // USERNAME
               Text(
@@ -444,8 +578,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   color: primaryBrown,
                 ),
               ),
-              const SizedBox(height: 24),
 
+              const SizedBox(height: 32),
+
+            
+              const SizedBox(height: 15),
+
+            
               // MENU OPTIONS CARD
               Container(
                 width: double.infinity,
