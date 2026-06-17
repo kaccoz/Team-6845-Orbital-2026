@@ -9,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crumb/screens/connect_buddy_page.dart';
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();

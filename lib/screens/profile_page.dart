@@ -590,62 +590,26 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: lightBrown,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false,
+        title: const Text(
+          "Profile",
+          style: TextStyle(
+            fontWeight: FontWeight.bold, 
+          ),
+        ),
+        centerTitle: true,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              
-              SizedBox(
-                height: 40,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    const Text(
-                      'Profile',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: primaryBrown,
-                      ),
-                    ),
-
-                    const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Icon(Icons.menu, size: 32, color: primaryBrown),
-                  ),
-                  
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3E332E),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('🔥', style: TextStyle(fontSize: 16)),
-                          SizedBox(width: 4),
-                          Text(
-                            '24',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-                ),
-              ),
-
-              const SizedBox(height: 15),
+              const SizedBox(height: 28),
 
               // AVATAR
               GestureDetector(

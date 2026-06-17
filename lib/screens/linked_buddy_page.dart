@@ -16,6 +16,7 @@ class BuddiesPage extends StatelessWidget {
 
   static const Color backgroundColor = Color(0xFFECEAE0);
   static const Color primaryBrown = Color(0xFF6F5643);
+  static const Color lightBrown = Color(0xFF8B6B4A);
   static const Color cardColor = Color(0xFFCBB28A);
   static const Color warningRed = Color(0xFFB45B52);
 
@@ -31,53 +32,36 @@ class BuddiesPage extends StatelessWidget {
     required this.onUnlink,
   });
 
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor, 
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: primaryBrown),
-          onPressed: () => Navigator.maybePop(context),
+  return Scaffold(
+    backgroundColor: backgroundColor,
+    appBar: AppBar(
+      backgroundColor: lightBrown,
+      foregroundColor: Colors.white,
+      automaticallyImplyLeading: false,
+      title: const Text(
+        "Buddy Dashboard",
+        style: TextStyle(
+          fontWeight: FontWeight.bold, 
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: primaryBrown, size: 28),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(
-                child: Text(
-                  'Buddies',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: primaryBrown,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Avatars and usernames section
-              _buildAvatarHeader(),
-              const SizedBox(height: 32),
-
-              // Reminder section
-              _buildProtectionCard(),
-              const SizedBox(height: 32),
-
-              // Activity header
-              const Text(
+      centerTitle: true,
+      elevation: 0,
+    ),
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: Column(
+          children: [
+            _buildAvatarHeader(),
+            const SizedBox(height: 32),
+            _buildProtectionCard(),
+            const SizedBox(height: 32),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
                 'Recent Activity',
                 style: TextStyle(
                   fontSize: 20,
@@ -85,17 +69,15 @@ class BuddiesPage extends StatelessWidget {
                   color: primaryBrown,
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Activity box
-              _buildActivityFeed(),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            _buildActivityFeed(),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAvatarHeader() {
     return Row(
