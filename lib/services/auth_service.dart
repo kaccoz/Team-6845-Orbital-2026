@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,12 @@ class AuthService {
   User? get currentUser => firebaseAuth.currentUser;
 
   Stream<User?> get authStateChanges => firebaseAuth.authStateChanges();
+
+  String _generateLinkCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
+  }
 
   Future<UserCredential> signIn({
     required String email,
@@ -29,9 +36,18 @@ class AuthService {
     User? newUSer = userCredential.user;
 
     if (newUSer != null) {
-      await newUSer.updateDisplayName(email.split('@')[0]);
-
+      String defaultUsername = email.split('@')[0];
+      await newUSer.updateDisplayName(defaultUsername);
       await newUSer.reload();
+
+      String uniqueCode = _generateLinkCode();
+      await FirebaseFirestore.instance.collection('users').doc(newUSer.uid).set({
+        'username': defaultUsername,
+        'email': email,
+        'linkCode': uniqueCode,
+        'buddyUid': null, 
+        'createdAt': FieldValue.serverTimestamp(),
+      });    
     }
 
     return userCredential;
@@ -51,6 +67,11 @@ class AuthService {
     required String username,
   }) async {
     await currentUser!.updateDisplayName(username);
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser!.uid)
+        .update({'username': username});
   }
 
   Future<void> deleteAccount({
@@ -59,6 +80,9 @@ class AuthService {
   }) async {
     AuthCredential credential = EmailAuthProvider.credential(email: email, password: password);
     await currentUser!.reauthenticateWithCredential(credential);
+
+    await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).delete();
+
     await currentUser!.delete();
     await firebaseAuth.signOut();
   }
@@ -83,6 +107,11 @@ class AuthService {
         EmailAuthProvider.credential(email: currentEmail, password: password);
     await currentUser!.reauthenticateWithCredential(credential);
     await currentUser!.verifyBeforeUpdateEmail(newEmail); 
+
+    await FirebaseFirestore.instance
+      .collection('users')
+      .doc(currentUser!.uid)
+      .update({'email': newEmail});
   }
 
   Future<void> updateProfilePicture(String base64String) async {
@@ -106,5 +135,22 @@ class AuthService {
         .update({
           'photoUrl': FieldValue.delete(),
         });
+  }
+
+  Future<void> unlinkBuddy(String buddyUid) async {
+    if (currentUser == null) return;
+
+    final firestore = FirebaseFirestore.instance;
+    final batch = firestore.batch();
+
+    batch.update(firestore.collection('users').doc(currentUser!.uid), {
+      'buddyUid': null,
+    });
+
+    batch.update(firestore.collection('users').doc(buddyUid), {
+      'buddyUid': null,
+    });
+
+    await batch.commit();
   }
 }

@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crumb/services/auth_service.dart';
 import 'package:crumb/screens/welcome_page.dart';
+import 'package:crumb/screens/habits_page.dart';
+import 'package:crumb/screens/home_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -32,6 +34,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _dbBase64Image;
   bool _isUploading = false;
   bool _hasProfilePicture = false;
+  String? _myLinkCode;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -53,6 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _hasProfilePicture = true; 
           _dbBase64Image = doc.data()?['photoUrl'];
+          _myLinkCode = doc.data()?['linkCode'];
         });
       }
     }
@@ -445,9 +449,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   try {
                     await authService.value.updateUsername(username: newUsername);
                     await authService.value.currentUser!.reload(); 
-                    setState(() {});
 
                     if (context.mounted) {
+                      setState(() {
+                      });
                       Navigator.pop(context);
                       showSnackBarSuccess('Username updated successfully!');
                     }
@@ -584,10 +589,21 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
 
+              const SizedBox(height: 8),
+
+              // LINK CODE
+              Text(
+                _myLinkCode != null ? "Your Buddy Code: $_myLinkCode" : "Loading Code...",
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: primaryBrown,
+                  letterSpacing: 1.1,
+                ),
+              ),
+
               const SizedBox(height: 32),
 
-            
-              const SizedBox(height: 15),
 
             
               // MENU OPTIONS CARD
@@ -663,14 +679,27 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: const Color(0xFF8B6B4A),
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
-        currentIndex: 1,
+        currentIndex: 2, // 💡 Force this specific page's navbar to light up the Profile icon!
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: "Habits"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
         onTap: (index) {
           if (index == 0) {
-            Navigator.pop(context);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
+          }
+          if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HabitsPage()),
+            );
+          }
+          if (index == 2) {
+            // do nothing cus already on profile page
           }
         },
       ),
@@ -691,7 +720,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         ElevatedButton(
           onPressed:
-              onUpdatePressed, // runs function when clicked
+              onUpdatePressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryBrown,
             foregroundColor: cardColor,
