@@ -8,6 +8,7 @@ import 'package:crumb/services/auth_service.dart';
 import 'package:crumb/screens/welcome_page.dart';
 import 'package:crumb/screens/habits_page.dart';
 import 'package:crumb/screens/home_page.dart';
+import 'package:crumb/screens/connect_buddy_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -34,7 +35,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _dbBase64Image;
   bool _isUploading = false;
   bool _hasProfilePicture = false;
-  String? _myLinkCode;
+  String? _myLinkUID;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -45,6 +46,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   static const Color backgroundColor = Color(0xFFECEAE0);
   static const Color primaryBrown = Color(0xFF6F5643);
+    static const Color lightBrown = Color(0xFF8B6B4A);
   static const Color cardColor = Color(0xFFCBB28A);
   static const Color warningRed = Color(0xFFB45B52);
 
@@ -52,11 +54,14 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = authService.value.currentUser;
     if (user != null) {
       final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-      if (doc.exists && doc.data()?['photoUrl'] != null) {
+      if (doc.exists) {
         setState(() {
-          _hasProfilePicture = true; 
-          _dbBase64Image = doc.data()?['photoUrl'];
-          _myLinkCode = doc.data()?['linkCode'];
+          _myLinkUID = doc.data()?['linkUID'] ?? doc.data()?['linkCode'];
+          
+          if (doc.data()?['photoUrl'] != null) {
+            _hasProfilePicture = true; 
+            _dbBase64Image = doc.data()?['photoUrl'];
+          }
         });
       }
     }
@@ -473,6 +478,91 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: backgroundColor,
+          title: const Text(
+            'Delete Account',
+            style: TextStyle(color: warningRed, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'WARNING: This action is permanent and cannot be undone. All of your user and habit data will be deleted.',
+                style: TextStyle(color: primaryBrown, fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controllerEmail,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Email',
+                  labelStyle: TextStyle(color: primaryBrown),
+                ),
+              ),
+              TextField(
+                controller: controllerPassword,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Password',
+                  labelStyle: TextStyle(color: primaryBrown),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                controllerEmail.clear();
+                controllerPassword.clear();
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: primaryBrown),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: warningRed),
+              onPressed: () async {
+                final email = controllerEmail.text.trim();
+                final password = controllerPassword.text.trim();
+
+                if (email.isNotEmpty && password.isNotEmpty) {
+                  try {
+                    await authService.value.deleteAccount(email: email, password: password);
+                    
+                    controllerEmail.clear();
+                    controllerPassword.clear();
+
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const WelcomePage()),
+                        (route) => false,
+                      );
+                    }
+                  } catch (e) {
+                    showSnackBarFailure('Failed to delete account. Check your credentials.');
+                  }
+                } else {
+                  showSnackBarFailure('Please enter both email and password.');
+                }
+              },
+              child: const Text(
+                'Delete Permanently',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   ImageProvider? _getProfileImageProvider() {
     if (_profileImage != null) {
       return FileImage(_profileImage!); 
@@ -591,9 +681,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
               const SizedBox(height: 8),
 
-              // LINK CODE
+              // LINK UID
               Text(
-                _myLinkCode != null ? "Your Buddy Code: $_myLinkCode" : "Loading Code...",
+                _myLinkUID != null ? "Your UID: $_myLinkUID" : "Loading UID...",
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -658,7 +748,7 @@ class _ProfilePageState extends State<ProfilePage> {
               SizedBox(
                 width: 180,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: _showDeleteAccountDialog,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: warningRed,
                     foregroundColor: Colors.white,
@@ -676,20 +766,23 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF8B6B4A),
+        backgroundColor: lightBrown,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
-        currentIndex: 2, // 💡 Force this specific page's navbar to light up the Profile icon!
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 3, 
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: "Habits"),
+          BottomNavigationBarItem(icon: Icon(Icons.people_alt_rounded), label: "Buddy"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
         onTap: (index) {
           if (index == 0) {
-            Navigator.pushReplacement(
+            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => HomePage()),
+              (route) => false,
             );
           }
           if (index == 1) {
@@ -699,7 +792,10 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }
           if (index == 2) {
-            // do nothing cus already on profile page
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
+            );
           }
         },
       ),
@@ -719,8 +815,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
         ElevatedButton(
-          onPressed:
-              onUpdatePressed,
+          onPressed: onUpdatePressed,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryBrown,
             foregroundColor: cardColor,

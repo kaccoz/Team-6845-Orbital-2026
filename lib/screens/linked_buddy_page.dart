@@ -12,6 +12,7 @@ class BuddiesPage extends StatelessWidget {
   final int? buddyStreak;
 
   final List<Map<String, String>> recentActivity;
+  final VoidCallback onUnlink;
 
   static const Color backgroundColor = Color(0xFFECEAE0);
   static const Color primaryBrown = Color(0xFF6F5643);
@@ -27,6 +28,7 @@ class BuddiesPage extends StatelessWidget {
     this.buddyPfpBase64,
     this.buddyStreak,
     required this.recentActivity,
+    required this.onUnlink,
   });
 
   @override
@@ -203,9 +205,7 @@ class BuddiesPage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {
-              // Disconnect anchor logic
-            },
+            onPressed: onUnlink,
             style: ElevatedButton.styleFrom(
               backgroundColor: cardColor, 
               foregroundColor: primaryBrown,

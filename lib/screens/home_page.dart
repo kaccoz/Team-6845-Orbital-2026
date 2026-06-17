@@ -6,6 +6,7 @@ import 'package:crumb/screens/habits_page.dart';
 import 'package:dashed_progress_bar/dashed_progress_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:crumb/screens/connect_buddy_page.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({super.key});
@@ -422,11 +423,16 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: const Color(0xFF8B6B4A),
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
+        type: BottomNavigationBarType.fixed, 
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(
             icon: Icon(Icons.check_circle),
             label: "Habits",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_rounded),
+            label: "Buddy",
           ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
@@ -438,6 +444,12 @@ class _HomePageState extends State<HomePage> {
             );
           }
           if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
+            );
+          }
+          if (index == 3) { 
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ProfilePage()),

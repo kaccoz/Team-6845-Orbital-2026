@@ -44,7 +44,7 @@ class AuthService {
       await FirebaseFirestore.instance.collection('users').doc(newUSer.uid).set({
         'username': defaultUsername,
         'email': email,
-        'linkCode': uniqueCode,
+        'linkUID': uniqueCode,
         'buddyUid': null, 
         'createdAt': FieldValue.serverTimestamp(),
       });    
@@ -135,6 +135,64 @@ class AuthService {
         .update({
           'photoUrl': FieldValue.delete(),
         });
+  }
+
+ Future<void> linkWithBuddy(String inputCode) async {
+    if (currentUser == null) throw Exception("You must be logged in!");
+
+    final firestore = FirebaseFirestore.instance;
+    final String currentUid = currentUser!.uid;
+    final String cleanCode = inputCode.trim().toUpperCase();
+
+    final myDoc = await firestore.collection('users').doc(currentUid).get();
+    if (myDoc.exists) {
+      final myData = myDoc.data();
+      final myOwnCode = myData?['linkUID'] ?? myData?['linkCode'];
+      if (myOwnCode != null && myOwnCode.toString().toUpperCase() == cleanCode) {
+        throw Exception("You cannot link with your own account!");
+      }
+    }
+
+    var querySnapshot = await firestore
+        .collection('users')
+        .where('linkUID', isEqualTo: cleanCode)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      querySnapshot = await firestore
+          .collection('users')
+          .where('linkCode', isEqualTo: cleanCode)
+          .limit(1)
+          .get();
+    }
+
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception("No user found with that buddy UID!");
+    }
+
+    final buddyDoc = querySnapshot.docs.first;
+    final String buddyUid = buddyDoc.id;
+
+    if (buddyUid == currentUid) {
+      throw Exception("You cannot link with your own account!");
+    }
+
+    if (buddyDoc.data()['buddyUid'] != null) {
+      throw Exception("This buddy is already linked to someone else!");
+    }
+
+    final batch = firestore.batch();
+
+    batch.update(firestore.collection('users').doc(currentUid), {
+      'buddyUid': buddyUid,
+    });
+
+    batch.update(firestore.collection('users').doc(buddyUid), {
+      'buddyUid': currentUid,
+    });
+
+    await batch.commit();
   }
 
   Future<void> unlinkBuddy(String buddyUid) async {
