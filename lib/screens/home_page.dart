@@ -253,6 +253,10 @@ class HomePage extends StatelessWidget {
             itemBuilder: (context, index) {
               final habit = habits[index];
               final data = habit.data();
+              final today = habitService.getTodayString();
+              final List completedDates = data['completedDates'] ?? [];
+
+              final isDoneToday = completedDates.contains(today);
               return Card(
                 child: ListTile(
                   onTap: () {
@@ -261,10 +265,13 @@ class HomePage extends StatelessWidget {
                   title: Text(data['title']),
                   subtitle: Text(data['duration']),
                   leading: Checkbox(
-                    value: data['completed'],
+                    value: isDoneToday,
                     onChanged: (value) async {
-                      await habitService.toggleHabit(habit.id, value!);
-
+                      if (value == true) {
+                        await habitService.markHabitDoneToday(habit.id);
+                      } else {
+                        await habitService.unmarkHabitToday(habit.id);
+                      }
                     },
                   ),
                   trailing: Row(

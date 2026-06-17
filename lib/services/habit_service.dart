@@ -19,7 +19,7 @@ class HabitService {
     await habits.add({
       'title': title,
       'duration': duration,
-      'completed': false,
+      'completedDates': [],
       'includeInStreak': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -33,10 +33,21 @@ class HabitService {
     await habits.doc(habitId).update({'title': title, 'duration': duration});
   }
 
-  Future<void> toggleHabit(String habitId, bool completed) async {
-  await habits.doc(habitId).update({'completed': completed});
+  Future<void> markHabitDoneToday(String habitId) async {
+  final today = getTodayString();
 
-  final isComplete = await checkTodayStreak();
+  final doc = await habits.doc(habitId).get();
+  final data = doc.data()!;
+  
+  List completedDates = List.from(data['completedDates'] ?? []);
+
+  if (!completedDates.contains(today)) {
+    completedDates.add(today);
+  }
+
+  await habits.doc(habitId).update({
+    'completedDates': completedDates,
+  });
 
   await updateStreak();
 }
@@ -44,48 +55,51 @@ class HabitService {
   Future<void> deleteHabit(String habitId) async {
   await habits.doc(habitId).delete();
 
-  // ✅ Re-check streak after deletion
-  final isComplete = await checkTodayStreak();
+  await updateStreak();
+}
+
+Future<void> unmarkHabitToday(String habitId) async {
+  final today = getTodayString();
+
+  final doc = await habits.doc(habitId).get();
+  final data = doc.data()!;
+
+  List completedDates = List.from(data['completedDates'] ?? []);
+
+  completedDates.remove(today);
+
+  await habits.doc(habitId).update({
+    'completedDates': completedDates,
+  });
 
   await updateStreak();
 }
 
   Future<void> toggleStreak(String habitId, bool value) async {
     await habits.doc(habitId).update({'includeInStreak': value});
+    await updateStreak();
   }
+
 
   Future<bool> checkTodayStreak() async {
   final snapshot = await habits.get();
   final docs = snapshot.docs;
 
-  final today = DateTime.now();
+  final today = getTodayString();
 
   final streakHabits = docs.where((doc) {
     final data = doc.data();
     return data['includeInStreak'] == true;
   }).toList();
 
-  // ❗ No habits = no streak
   if (streakHabits.isEmpty) return false;
 
   final incomplete = streakHabits.where((doc) {
     final data = doc.data();
 
-    final completed = data['completed'] ?? false;
+    final List completedDates = data['completedDates'] ?? [];
 
-    final createdAt = data['createdAt'] as Timestamp?;
-    if (createdAt == null) return false;
-
-    final createdDate = createdAt.toDate();
-
-    final isCreatedToday =
-        createdDate.year == today.year &&
-        createdDate.month == today.month &&
-        createdDate.day == today.day;
-
-    if (isCreatedToday) return false;
-
-    return completed == false;
+    return !completedDates.contains(today);
   });
 
   return incomplete.isEmpty;
@@ -109,7 +123,6 @@ Future<void> updateStreak() async {
       .collection('streaks')
       .doc('main');
 
-  // ❌ no habits = wipe streak
   if (streakHabits.isEmpty) {
     await ref.set({'dates': []});
     return;
@@ -117,7 +130,8 @@ Future<void> updateStreak() async {
 
   final allComplete = streakHabits.every((doc) {
     final data = doc.data();
-    return data['completed'] == true;
+    final List completedDates = List.from(data['completedDates'] ?? []);
+    return completedDates.contains(today);
   });
 
   final docSnap = await ref.get();
