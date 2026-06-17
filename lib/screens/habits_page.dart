@@ -4,6 +4,9 @@ import 'package:streak_calendar/streak_calendar.dart';
 import 'package:crumb/screens/profile_page.dart';
 import 'package:crumb/widgets/top_header.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:crumb/widgets/app_colors.dart';
+import 'package:crumb/screens/home_page.dart';
+import 'package:crumb/screens/connect_buddy_page.dart';
 
 final HabitService habitService = HabitService();
 
@@ -80,35 +83,49 @@ class HabitsPage extends StatelessWidget {
       ),
 
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF8B6B4A),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        currentIndex: 1, // Habits tab
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.check_circle),
-            label: "Habits",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.popUntil(context, (route) => route.isFirst);
-          }
+  backgroundColor: AppColors.lightBrown,
+  selectedItemColor: Colors.white,
+  unselectedItemColor: Colors.white70,
+  type: BottomNavigationBarType.fixed,
+  currentIndex: 1,
+  items: const [
+    BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.check_circle),
+      label: "Habits",
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.people_alt_rounded),
+      label: "Buddy",
+    ),
+    BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+  ],
+  onTap: (index) {
+    if (index == 1) return;
 
-          if (index == 1) {
-            // already on habits → do nothing
-          }
+    if (index == 0) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => HomePage()),
+        (route) => false,
+      );
+    }
 
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfilePage()),
-            );
-          }
-        },
-      ),
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
+      );
+    }
+
+    if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfilePage()),
+      );
+    }
+  },
+),
     );
   }
 }

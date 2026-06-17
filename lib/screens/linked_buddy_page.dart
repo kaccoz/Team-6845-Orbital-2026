@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:crumb/widgets/top_header.dart';
+import 'package:crumb/widgets/app_colors.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 
 class BuddiesPage extends StatelessWidget {
@@ -12,11 +15,7 @@ class BuddiesPage extends StatelessWidget {
   final int? buddyStreak;
 
   final List<Map<String, String>> recentActivity;
-
-  static const Color backgroundColor = Color(0xFFECEAE0);
-  static const Color primaryBrown = Color(0xFF6F5643);
-  static const Color cardColor = Color(0xFFCBB28A);
-  static const Color warningRed = Color(0xFFB45B52);
+  final VoidCallback onUnlink;
 
   const BuddiesPage({
     super.key,
@@ -27,73 +26,44 @@ class BuddiesPage extends StatelessWidget {
     this.buddyPfpBase64,
     this.buddyStreak,
     required this.recentActivity,
+    required this.onUnlink,
   });
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundColor, 
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: primaryBrown),
-          onPressed: () => Navigator.maybePop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: primaryBrown, size: 28),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(
-                child: Text(
-                  'Buddies',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: primaryBrown,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Avatars and usernames section
-              _buildAvatarHeader(),
-              const SizedBox(height: 32),
-
-              // Reminder section
-              _buildProtectionCard(),
-              const SizedBox(height: 32),
-
-              // Activity header
-              const Text(
+  final uid = FirebaseAuth.instance.currentUser!.uid;
+  return Scaffold(
+    backgroundColor: AppColors.backgroundColor,
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+        child: Column(
+          children: [
+            TopHeader(title: "Buddy Tracking", uid: uid),
+            _buildAvatarHeader(),
+            const SizedBox(height: 32),
+            _buildProtectionCard(),
+            const SizedBox(height: 32),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
                 'Recent Activity',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: primaryBrown,
+                  color: AppColors.primaryBrown,
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Activity box
-              _buildActivityFeed(),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            _buildActivityFeed(),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAvatarHeader() {
     return Row(
@@ -108,7 +78,7 @@ class BuddiesPage extends StatelessWidget {
         // Linking Indicator
         const Icon(
           Icons.link,
-          color: cardColor,
+          color: AppColors.cardColor,
           size: 40,
         ),
         
@@ -140,13 +110,13 @@ class BuddiesPage extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 56,
-          backgroundColor: primaryBrown,
+          backgroundColor: AppColors.primaryBrown,
           child: CircleAvatar(
             radius: 51,
-            backgroundColor: backgroundColor, 
+            backgroundColor: AppColors.backgroundColor, 
             backgroundImage: avatarImage,
             child: avatarImage == null
-                ? const Icon(Icons.person, size: 55, color: primaryBrown)
+                ? const Icon(Icons.person, size: 55, color: AppColors.primaryBrown)
                 : null,
           ),
         ),
@@ -156,7 +126,7 @@ class BuddiesPage extends StatelessWidget {
           style: const TextStyle(
             fontSize: 18, 
             fontWeight: FontWeight.bold, 
-            color: primaryBrown,
+            color: AppColors.primaryBrown,
           ),
         ),
         const SizedBox(height: 2),
@@ -164,7 +134,7 @@ class BuddiesPage extends StatelessWidget {
           streak != null ? "$streak day streak" : "day streak",
           style: const TextStyle(
             fontSize: 13, 
-            color: primaryBrown, 
+            color: AppColors.primaryBrown, 
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -177,7 +147,7 @@ class BuddiesPage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: primaryBrown, 
+        color: AppColors.primaryBrown, 
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -197,18 +167,16 @@ class BuddiesPage extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14, 
-              color: backgroundColor, 
+              color: AppColors.backgroundColor, 
               height: 1.3,
             ),
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {
-              // Disconnect anchor logic
-            },
+            onPressed: onUnlink,
             style: ElevatedButton.styleFrom(
-              backgroundColor: cardColor, 
-              foregroundColor: primaryBrown,
+              backgroundColor: AppColors.cardColor, 
+              foregroundColor: AppColors.primaryBrown,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -231,13 +199,13 @@ class BuddiesPage extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
         decoration: BoxDecoration(
-          color: primaryBrown,
+          color: AppColors.primaryBrown,
           borderRadius: BorderRadius.circular(24),
         ),
         child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.history_toggle_off, color: cardColor, size: 40),
+            Icon(Icons.history_toggle_off, color: AppColors.cardColor, size: 40),
             SizedBox(height: 12),
             Text(
               "No recent updates",
@@ -250,7 +218,7 @@ class BuddiesPage extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: primaryBrown,
+        color: AppColors.primaryBrown,
         borderRadius: BorderRadius.circular(24),
       ),
       child: ListView.builder(
@@ -264,8 +232,8 @@ class BuddiesPage extends StatelessWidget {
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 leading: const CircleAvatar(
-                  backgroundColor: backgroundColor,
-                  child: Icon(Icons.person, color: primaryBrown),
+                  backgroundColor: AppColors.backgroundColor,
+                  child: Icon(Icons.person, color: AppColors.primaryBrown),
                 ),
                 title: RichText(
                   text: TextSpan(
@@ -283,13 +251,13 @@ class BuddiesPage extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 2.0),
                   child: Text(
                     item['time'] ?? '',
-                    style: const TextStyle(color: cardColor, fontSize: 12),
+                    style: const TextStyle(color: AppColors.cardColor, fontSize: 12),
                   ),
                 ),
               ),
               if (index < recentActivity.length - 1)
                 const Divider(
-                  color: backgroundColor, 
+                  color: AppColors.backgroundColor, 
                   height: 1, 
                   thickness: 0.5,
                   indent: 16,

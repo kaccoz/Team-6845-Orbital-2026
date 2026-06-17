@@ -7,6 +7,8 @@ import 'package:dashed_progress_bar/dashed_progress_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crumb/widgets/top_header.dart';
+import 'package:crumb/screens/connect_buddy_page.dart';
+import 'package:crumb/widgets/app_colors.dart'; 
 
 class HomePage extends StatefulWidget {
   HomePage({super.key});
@@ -44,7 +46,8 @@ class _HomePageState extends State<HomePage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text("Add Habit"),
+              backgroundColor: AppColors.backgroundColor,
+              title: const Text("Add Habit", style: TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -55,9 +58,7 @@ class _HomePageState extends State<HomePage> {
                   TextField(
                     controller: durationController,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(
                       labelText: "Duration",
                       suffixText: "min",
@@ -66,16 +67,17 @@ class _HomePageState extends State<HomePage> {
                   if (errorMessage.isNotEmpty)
                     Text(
                       errorMessage,
-                      style: const TextStyle(color: Colors.red),
+                      style: const TextStyle(color: AppColors.warningRed),
                     ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel"),
+                  child: const Text("Cancel", style: TextStyle(color: AppColors.primaryBrown)),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrown),
                   onPressed: () {
                     habitService.addHabit(
                       habitController.text.trim(),
@@ -83,7 +85,7 @@ class _HomePageState extends State<HomePage> {
                     );
                     Navigator.pop(context);
                   },
-                  child: const Text("Add"),
+                  child: const Text("Add", style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -98,19 +100,21 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text("Delete Habit"),
+          backgroundColor: AppColors.backgroundColor,
+          title: const Text("Delete Habit", style: TextStyle(color: AppColors.warningRed, fontWeight: FontWeight.bold)),
           content: const Text("Are you sure you want to delete this habit?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
+              child: const Text("Cancel", style: TextStyle(color: AppColors.primaryBrown)),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.warningRed),
               onPressed: () {
                 habitService.deleteHabit(habitId);
                 Navigator.pop(context);
               },
-              child: const Text("Delete"),
+              child: const Text("Delete", style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -135,7 +139,8 @@ class _HomePageState extends State<HomePage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text("Edit Habit"),
+              backgroundColor: AppColors.backgroundColor,
+              title: const Text("Edit Habit", style: TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -147,9 +152,7 @@ class _HomePageState extends State<HomePage> {
                   TextField(
                     controller: durationController,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(
                       labelText: "Duration",
                       suffixText: "min",
@@ -160,7 +163,7 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         errorMessage,
-                        style: const TextStyle(color: Colors.red),
+                        style: const TextStyle(color: AppColors.warningRed),
                       ),
                     ),
                 ],
@@ -168,9 +171,10 @@ class _HomePageState extends State<HomePage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel"),
+                  child: const Text("Cancel", style: TextStyle(color: AppColors.primaryBrown)),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrown),
                   onPressed: () {
                     habitService.updateHabit(
                       habitId,
@@ -179,7 +183,7 @@ class _HomePageState extends State<HomePage> {
                     );
                     Navigator.pop(context);
                   },
-                  child: const Text("Update"),
+                  child: const Text("Update", style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -195,26 +199,28 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text(data['title']),
-              content: SwitchListTile(
-                title: const Text("Include in streak"),
+        return AlertDialog(
+          backgroundColor: AppColors.backgroundColor,
+          title: Text(data['title'], style: const TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return SwitchListTile(
+                title: const Text("Include in streak", style: TextStyle(color: AppColors.primaryBrown)),
+                activeColor: AppColors.primaryBrown,
                 value: includeInStreak,
                 onChanged: (value) {
                   setState(() => includeInStreak = value);
                   habitService.toggleStreak(habitId, value);
                 },
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Close"),
-                ),
-              ],
-            );
-          },
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close", style: TextStyle(color: AppColors.primaryBrown)),
+            ),
+          ],
         );
       },
     );
@@ -225,237 +231,268 @@ class _HomePageState extends State<HomePage> {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFEAE8D7),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                TopHeader(
-  title: "Home",
-  uid: uid,
-),
-                const SizedBox(height: 20),
-                StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      backgroundColor: AppColors.backgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            TopHeader(title: "Home", uid: uid),
+            const SizedBox(height: 20),
+            StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(uid)
+                  .snapshots(),
+              builder: (context, userSnap) {
+                final goalDays = userSnap.data?.data()?['goalDays'] ?? 7;
+
+                return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                   stream: FirebaseFirestore.instance
                       .collection('users')
                       .doc(uid)
+                      .collection('streaks')
+                      .doc('main')
                       .snapshots(),
-                  builder: (context, userSnap) {
-                    final goalDays = userSnap.data?.data()?['goalDays'] ?? 7;
+                  builder: (context, streakSnap) {
+                    final data = streakSnap.data?.data();
+                    final List dates = data?['dates'] ?? [];
+                    final streakDays = dates.length;
 
-                    return StreamBuilder<
-                        DocumentSnapshot<Map<String, dynamic>>>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(uid)
-                          .collection('streaks')
-                          .doc('main')
-                          .snapshots(),
-                      builder: (context, streakSnap) {
-                        final data = streakSnap.data?.data();
-                        final List dates = data?['dates'] ?? [];
-                        final streakDays = dates.length;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 40),
-                          child: SizedBox(
-                            height: 220,
-                            child: DashedCircularProgressBar.aspectRatio(
-                              aspectRatio: 1,
-                              progress: streakDays.toDouble(),
-                              maxProgress: goalDays.toDouble(),
-                              foregroundColor: const Color(0xFF8B6B4A),
-                              backgroundColor: const Color(0xFFE0D6C8),
-                              foregroundStrokeWidth: 10,
-                              backgroundStrokeWidth: 10,
-                              animation: true,
-                              child: Center(
-                                child: Text(
-                                  "$streakDays / $goalDays",
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF8B6B4A),
-                                  ),
-                                ),
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: SizedBox(
+                        height: 200,
+                        child: DashedCircularProgressBar.aspectRatio(
+                          aspectRatio: 1,
+                          progress: streakDays.toDouble(),
+                          maxProgress: goalDays.toDouble(),
+                          foregroundColor: AppColors.lightBrown,
+                          backgroundColor: const Color(0xFFE0D6C8),
+                          foregroundStrokeWidth: 10,
+                          backgroundStrokeWidth: 10,
+                          animation: true,
+                          child: Center(
+                            child: Text(
+                              "$streakDays / $goalDays",
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.lightBrown,
                               ),
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     );
                   },
+                );
+              },
+            ),
+            const SizedBox(height: 30),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 50),
+              child: Text(
+                "Nice!! Keep showing up, your future self is watching.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.primaryBrown,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 50),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 50),
-                  child: Text(
-                    "Nice!! Keep showing up, your future self is watching.",
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF3E220F),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // This Expanded forces the container asset to fill remaining space
+            // and allows inside elements to handle scrolling independently
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.cardColor,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 10),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: Container(
-                    margin: const EdgeInsets.all(12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF78583E),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              "Today's Habit",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(
-                              height: 35,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFEAE8D7),
-                                  foregroundColor: const Color(0xFF78583E),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                onPressed: () => showAddHabitDialog(context),
-                                child: const Text("+ Add"),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        StreamBuilder(
-                          stream: habitService.habits.snapshots(),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              );
-                            }
-
-                            final habits = snapshot.data!.docs;
-
-                            return ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: habits.length,
-                              itemBuilder: (context, index) {
-                                final habit = habits[index];
-                                final data = habit.data();
-
-                                final today = habitService.getTodayString();
-                                final List completedDates =
-                                    data['completedDates'] ?? [];
-
-                                final isDoneToday =
-                                    completedDates.contains(today);
-
-                                return Card(
-                                  color: const Color(0xFFEAE8D7),
-                                  child: ListTile(
-                                    title: Text(data['title']),
-                                    subtitle: Text(data['duration']),
-                                    leading: Checkbox(
-                                      value: isDoneToday,
-                                      activeColor: const Color(0xFF78583E),
-                                      onChanged: (value) async {
-                                        if (value == true) {
-                                          await habitService
-                                              .markHabitDoneToday(habit.id);
-                                        } else {
-                                          await habitService
-                                              .unmarkHabitToday(habit.id);
-                                        }
-                                      },
-                                    ),
-                                    trailing: PopupMenuButton<String>(
-                                      onSelected: (value) {
-                                        if (value == 'edit') {
-                                          showEditHabitDialog(
-                                              context, habit.id, data);
-                                        }
-                                        if (value == 'delete') {
-                                          confirmDeleteHabit(context, habit.id);
-                                        }
-                                      },
-                                      itemBuilder: (context) => const [
-                                        PopupMenuItem(
-                                          value: 'edit',
-                                          child: Text('Edit'),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'delete',
-                                          child: Text('Delete'),
-                                        ),
-                                      ],
-                                    ),
-                                    onTap: () => showHabitOptions(
-                                        context, habit.id, data),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      ],
+                        const Text(
+                          "Today's Habit",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                      ),
                     ),
+                    SizedBox(
+                      height: 35,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.backgroundColor,
+                          foregroundColor: AppColors.cardColor,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        onPressed: () => showAddHabitDialog(context),
+                        child: const Text("+ Add", style: TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                // Nesting an Expanded around ListView.builder lets it scroll internally
+                Expanded(
+                  child: StreamBuilder(
+                    stream: habitService.habits.snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                          ),
+                        );
+                      }
+
+                      final habits = snapshot.data!.docs;
+
+                      if (habits.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            "No habits added yet!",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: habits.length,
+                        itemBuilder: (context, index) {
+                          final habit = habits[index];
+                          final data = habit.data();
+
+                          final today = habitService.getTodayString();
+                          final List completedDates =
+                              data['completedDates'] ?? [];
+
+                          final isDoneToday = completedDates.contains(
+                            today,
+                          );
+
+                          return Card(
+                            color: AppColors.backgroundColor,
+                            child: ListTile(
+                              title: Text(data['title'], style: const TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
+                              subtitle: Text(data['duration']),
+                              leading: Checkbox(
+                                value: isDoneToday,
+                                activeColor: AppColors.primaryBrown,
+                                checkColor: Colors.white,
+                                onChanged: (value) async {
+                                  if (value == true) {
+                                    await habitService.markHabitDoneToday(
+                                      habit.id,
+                                    );
+                                  } else {
+                                    await habitService.unmarkHabitToday(
+                                      habit.id,
+                                    );
+                                  }
+                                },
+                              ),
+                              trailing: PopupMenuButton<String>(
+                                iconColor: AppColors.primaryBrown,
+                                onSelected: (value) {
+                                  if (value == 'edit') {
+                                    showEditHabitDialog(
+                                      context,
+                                      habit.id,
+                                      data,
+                                    );
+                                  }
+                                  if (value == 'delete') {
+                                    confirmDeleteHabit(context, habit.id);
+                                  }
+                                },
+                                itemBuilder: (context) => const [
+                                  PopupMenuItem(
+                                    value: 'edit',
+                                    child: Text('Edit'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                              onTap: () => showHabitOptions(
+                                context,
+                                habit.id,
+                                data,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
+      ],
+    ),
+  ),
+  bottomNavigationBar: BottomNavigationBar(
+    backgroundColor: AppColors.lightBrown,
+    selectedItemColor: Colors.white,
+    unselectedItemColor: Colors.white70,
+    type: BottomNavigationBarType.fixed,
+    currentIndex: 0,
+    items: const [
+      BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.check_circle),
+        label: "Habits",
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF8B6B4A),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.check_circle),
-            label: "Habits",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => HabitsPage()),
-            );
-          }
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfilePage()),
-            );
-          }
-        },
+      BottomNavigationBarItem(
+        icon: Icon(Icons.people_alt_rounded),
+        label: "Buddy",
       ),
-    );
+      BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+    ],
+    onTap: (index) {
+      if (index == 0) return;
+
+      if (index == 1) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => HabitsPage()),
+        );
+      }
+
+      if (index == 2) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
+        );
+      }
+
+      if (index == 3) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfilePage()),
+        );
+      }
+    },
+  ),
+);
   }
 }
