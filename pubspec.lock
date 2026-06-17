@@ -413,6 +413,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.1"
+  streak_calendar:
+    dependency: "direct main"
+    description:
+      name: streak_calendar
+      sha256: "5d1b21e72b9b1b70a5a4ab49ee00e397592691ceded8c8591510721c29b044a3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
   stream_channel:
     dependency: transitive
     description:
