@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:crumb/services/habit_service.dart';
 import 'package:streak_calendar/streak_calendar.dart';
+import 'package:crumb/screens/profile_page.dart';
 
 final HabitService habitService = HabitService();
 
@@ -24,13 +25,9 @@ class HabitsPage extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final data = snapshot.data!.docs;
+          final doc = snapshot.data!.data();
 
-          List raw = [];
-
-          if (data.isNotEmpty) {
-            raw = data.first.data()['dates'] ?? [];
-          }
+          List raw = doc?['dates'] ?? [];
 
           final datesForStreaks = raw.map((e) => DateTime.parse(e)).toList();
 
@@ -71,6 +68,37 @@ class HabitsPage extends StatelessWidget {
               ),
             ),
           );
+        },
+      ),
+
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFF8B6B4A),
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        currentIndex: 1, // Habits tab
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.check_circle),
+            label: "Habits",
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.popUntil(context, (route) => route.isFirst);
+          }
+
+          if (index == 1) {
+            // already on habits → do nothing
+          }
+
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          }
         },
       ),
     );

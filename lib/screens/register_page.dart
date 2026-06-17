@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crumb/services/auth_service.dart';
-import 'package:crumb/screens/home_page.dart';
 import 'package:crumb/screens/login_page.dart';
+import 'package:crumb/screens/goalsetup_page.dart';
 
 
 
@@ -27,12 +27,11 @@ class _RegisterPageState extends State<RegisterPage> {
     );
 
     if (mounted) {
-      Navigator.pushAndRemoveUntil(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => HomePage(),
+          builder: (context) => const GoalSetupPage(),
         ),
-        (route) => false,
       );
     }
   } on FirebaseAuthException catch (e) {

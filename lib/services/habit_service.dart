@@ -152,15 +152,15 @@ Future<void> updateStreak() async {
   await ref.set({'dates': dates});
 }
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> getStreakStream() {
-    final uid = auth.currentUser!.uid;
-    return firestore
-        .collection('users')
-        .doc(uid)
-        .collection('streaks')
-        .snapshots();
-  }
-
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getStreakStream() {
+  final uid = auth.currentUser!.uid;
+  return firestore
+      .collection('users')
+      .doc(uid)
+      .collection('streaks')
+      .doc('main')
+      .snapshots();
+}
    Stream<QuerySnapshot<Map<String, dynamic>>> getHabits() {
     final uid = auth.currentUser!.uid;
 
