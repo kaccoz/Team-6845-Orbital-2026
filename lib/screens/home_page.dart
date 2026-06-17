@@ -137,7 +137,7 @@ class _HomePageState extends State<HomePage> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 👇 SAME STYLE AS ADD
+
                   TextField(
                     controller: habitController,
                     decoration: const InputDecoration(labelText: "Habit"),
@@ -332,7 +332,7 @@ class _HomePageState extends State<HomePage> {
                               },
                             ),
 
-                            // 👇 ADD THIS (edit/delete menu)
+                           
                             trailing: PopupMenuButton<String>(
                               onSelected: (value) {
                                 if (value == 'edit') {
