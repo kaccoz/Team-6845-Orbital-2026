@@ -11,7 +11,7 @@ import 'package:crumb/screens/connect_buddy_page.dart';
 import 'package:crumb/widgets/app_colors.dart'; 
 
 class HomePage extends StatefulWidget {
-  HomePage({super.key});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
