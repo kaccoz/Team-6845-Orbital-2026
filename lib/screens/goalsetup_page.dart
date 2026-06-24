@@ -12,6 +12,16 @@ class GoalSetupPage extends StatefulWidget {
 
 class _GoalSetupPageState extends State<GoalSetupPage> {
   int selectedDays = 7;
+    late FixedExtentScrollController _controller;
+
+    @override
+void initState() {
+  super.initState();
+
+  _controller = FixedExtentScrollController(
+    initialItem: selectedDays - 5,
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +60,7 @@ class _GoalSetupPageState extends State<GoalSetupPage> {
                     height: 120,
                     width: 100,
                     child: ListWheelScrollView.useDelegate(
+                       controller: _controller,
                       itemExtent: 40,
                       physics: const FixedExtentScrollPhysics(),
                       onSelectedItemChanged: (index) {
@@ -58,7 +69,7 @@ class _GoalSetupPageState extends State<GoalSetupPage> {
                         });
                       },
                       childDelegate: ListWheelChildBuilderDelegate(
-                        childCount: 96, // 5 to 100
+                        childCount: 96, 
                         builder: (context, index) {
                           final value = 5 + index;
                           return Center(

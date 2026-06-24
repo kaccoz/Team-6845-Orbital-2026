@@ -39,42 +39,50 @@ class HabitsPage extends StatelessWidget {
                     .map((e) => DateTime.parse(e))
                     .toList();
 
-                return CleanCalendar(
-                  enableDenseViewForDates: true,
-                  enableDenseSplashForDates: true,
-                  datesForStreaks: datesForStreaks,
-                  currentDateProperties: DatesProperties(
-                    datesDecoration: DatesDecoration(
-                      datesBorderRadius: 1000,
-                      datesBackgroundColor: Colors.transparent,
-                      datesBorderColor: Colors.green,
-                      datesTextColor: Colors.black,
+                return Column(
+                  children: [
+                    CleanCalendar(
+                      enableDenseViewForDates: true,
+                      enableDenseSplashForDates: true,
+                      datesForStreaks: datesForStreaks,
+                      currentDateProperties: DatesProperties(
+                        datesDecoration: DatesDecoration(
+                          datesBorderRadius: 1000,
+                          datesBackgroundColor: Colors.transparent,
+                          datesBorderColor: Colors.green,
+                          datesTextColor: Colors.black,
+                        ),
+                      ),
+                      generalDatesProperties: DatesProperties(
+                        datesDecoration: DatesDecoration(
+                          datesBorderRadius: 1000,
+                          datesBackgroundColor: Colors.transparent,
+                          datesBorderColor: Colors.transparent,
+                          datesTextColor: Colors.black,
+                        ),
+                      ),
+                      streakDatesProperties: DatesProperties(
+                        datesDecoration: DatesDecoration(
+                          datesBorderRadius: 1000,
+                          datesBackgroundColor: Colors.green,
+                          datesBorderColor: Colors.green,
+                          datesTextColor: Colors.white,
+                        ),
+                      ),
+                      leadingTrailingDatesProperties: DatesProperties(
+                        datesDecoration: DatesDecoration(
+                          datesBorderRadius: 1000,
+                          datesBackgroundColor: Colors.transparent,
+                          datesBorderColor: Colors.transparent,
+                          datesTextColor: Colors.grey,
+                        ),
+                      ),
                     ),
-                  ),
-                  generalDatesProperties: DatesProperties(
-                    datesDecoration: DatesDecoration(
-                      datesBorderRadius: 1000,
-                      datesBackgroundColor: Colors.transparent,
-                      datesBorderColor: Colors.transparent,
-                      datesTextColor: Colors.black,
-                    ),
-                  ),
-                  streakDatesProperties: DatesProperties(
-                    datesDecoration: DatesDecoration(
-                      datesBorderRadius: 1000,
-                      datesBackgroundColor: Colors.green,
-                      datesBorderColor: Colors.green,
-                      datesTextColor: Colors.white,
-                    ),
-                  ),
-                  leadingTrailingDatesProperties: DatesProperties(
-                    datesDecoration: DatesDecoration(
-                      datesBorderRadius: 1000,
-                      datesBackgroundColor: Colors.transparent,
-                      datesBorderColor: Colors.transparent,
-                      datesTextColor: Colors.grey,
-                    ),
-                  ),
+
+                    const SizedBox(height: 20),
+
+                    _buildGraceDaysWidget(doc),
+                  ],
                 );
               },
             ),
@@ -83,49 +91,94 @@ class HabitsPage extends StatelessWidget {
       ),
 
       bottomNavigationBar: BottomNavigationBar(
-  backgroundColor: AppColors.lightBrown,
-  selectedItemColor: Colors.white,
-  unselectedItemColor: Colors.white70,
-  type: BottomNavigationBarType.fixed,
-  currentIndex: 1,
-  items: const [
-    BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.check_circle),
-      label: "Habits",
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.people_alt_rounded),
-      label: "Buddy",
-    ),
-    BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-  ],
-  onTap: (index) {
-    if (index == 1) return;
+        backgroundColor: AppColors.lightBrown,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 1,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.check_circle),
+            label: "Habits",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_rounded),
+            label: "Buddy",
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
+        onTap: (index) {
+          if (index == 1) return;
 
-    if (index == 0) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-        (route) => false,
-      );
-    }
+          if (index == 0) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+              (route) => false,
+            );
+          }
 
-    if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
-      );
-    }
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
+            );
+          }
 
-    if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ProfilePage()),
-      );
-    }
-  },
-),
+          if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildGraceDaysWidget(Map<String, dynamic>? doc) {
+    final graceDays = doc?['graceDays'] ?? 0;
+
+    String message = graceDays == 0
+        ? "No grace days yet"
+        : "You have $graceDays safety net 💛";
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Grace Days",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+              Text(
+                graceDays.toString(),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 }

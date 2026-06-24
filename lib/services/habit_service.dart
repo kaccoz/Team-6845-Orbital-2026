@@ -8,12 +8,13 @@ class HabitService {
     final uid = auth.currentUser!.uid;
     return firestore.collection('users').doc(uid).collection('habits');
   }
+
   String getTodayString() {
-  final today = DateTime.now();
-  return "${today.year.toString().padLeft(4, '0')}-"
-    "${today.month.toString().padLeft(2, '0')}-"
-    "${today.day.toString().padLeft(2, '0')}";
-}
+    final today = DateTime.now();
+    return "${today.year.toString().padLeft(4, '0')}-"
+        "${today.month.toString().padLeft(2, '0')}-"
+        "${today.day.toString().padLeft(2, '0')}";
+  }
 
   Future<void> addHabit(String title, String duration) async {
     await habits.add({
@@ -34,134 +35,178 @@ class HabitService {
   }
 
   Future<void> markHabitDoneToday(String habitId) async {
-  final today = getTodayString();
+    final today = getTodayString();
 
-  final doc = await habits.doc(habitId).get();
-  final data = doc.data()!;
-  
-  List completedDates = List.from(data['completedDates'] ?? []);
+    final doc = await habits.doc(habitId).get();
+    final data = doc.data()!;
 
-  if (!completedDates.contains(today)) {
-    completedDates.add(today);
+    List completedDates = List.from(data['completedDates'] ?? []);
+
+    if (!completedDates.contains(today)) {
+      completedDates.add(today);
+    }
+
+    await habits.doc(habitId).update({'completedDates': completedDates});
+
+    await updateStreak();
   }
 
-  await habits.doc(habitId).update({
-    'completedDates': completedDates,
-  });
-
-  await updateStreak();
-}
-
   Future<void> deleteHabit(String habitId) async {
-  await habits.doc(habitId).delete();
+    await habits.doc(habitId).delete();
 
-  await updateStreak();
-}
+    await updateStreak();
+  }
 
-Future<void> unmarkHabitToday(String habitId) async {
-  final today = getTodayString();
+  Future<void> unmarkHabitToday(String habitId) async {
+    final today = getTodayString();
 
-  final doc = await habits.doc(habitId).get();
-  final data = doc.data()!;
+    final doc = await habits.doc(habitId).get();
+    final data = doc.data()!;
 
-  List completedDates = List.from(data['completedDates'] ?? []);
+    List completedDates = List.from(data['completedDates'] ?? []);
 
-  completedDates.remove(today);
+    completedDates.remove(today);
 
-  await habits.doc(habitId).update({
-    'completedDates': completedDates,
-  });
+    await habits.doc(habitId).update({'completedDates': completedDates});
 
-  await updateStreak();
-}
+    await updateStreak();
+  }
 
   Future<void> toggleStreak(String habitId, bool value) async {
     await habits.doc(habitId).update({'includeInStreak': value});
     await updateStreak();
   }
 
-
   Future<bool> checkTodayStreak() async {
-  final snapshot = await habits.get();
-  final docs = snapshot.docs;
+    final snapshot = await habits.get();
+    final docs = snapshot.docs;
 
-  final today = getTodayString();
+    final today = getTodayString();
 
-  final streakHabits = docs.where((doc) {
-    final data = doc.data();
-    return data['includeInStreak'] == true;
-  }).toList();
+    final streakHabits = docs.where((doc) {
+      final data = doc.data();
+      return data['includeInStreak'] == true;
+    }).toList();
 
-  if (streakHabits.isEmpty) return false;
+    if (streakHabits.isEmpty) return false;
 
-  final incomplete = streakHabits.where((doc) {
-    final data = doc.data();
+    final incomplete = streakHabits.where((doc) {
+      final data = doc.data();
 
-    final List completedDates = data['completedDates'] ?? [];
+      final List completedDates = data['completedDates'] ?? [];
 
-    return !completedDates.contains(today);
-  });
+      return !completedDates.contains(today);
+    });
 
-  return incomplete.isEmpty;
-}
-
-Future<void> updateStreak() async {
-  final uid = auth.currentUser!.uid;
-  final today = getTodayString();
-
-  final snapshot = await habits.get();
-  final docs = snapshot.docs;
-
-  final streakHabits = docs.where((doc) {
-    final data = doc.data();
-    return (data['includeInStreak'] ?? false) == true;
-  }).toList();
-
-  final ref = firestore
-      .collection('users')
-      .doc(uid)
-      .collection('streaks')
-      .doc('main');
-
-  if (streakHabits.isEmpty) {
-    await ref.set({'dates': []});
-    return;
+    return incomplete.isEmpty;
   }
 
-  final allComplete = streakHabits.every((doc) {
-    final data = doc.data();
-    final List completedDates = List.from(data['completedDates'] ?? []);
-    return completedDates.contains(today);
-  });
+  int calculateCurrentStreak(List<String> dates) {
+    dates.sort();
 
-  final docSnap = await ref.get();
-  List dates = [];
+    int streak = 0;
 
-  if (docSnap.exists) {
-    dates = List.from(docSnap.data()?['dates'] ?? []);
-  }
+    DateTime today = DateTime.now();
+    DateTime current = DateTime(today.year, today.month, today.day);
 
-  if (allComplete) {
-    if (!dates.contains(today)) {
-      dates.add(today);
+    for (int i = dates.length - 1; i >= 0; i--) {
+      DateTime d = DateTime.parse(dates[i]);
+
+      if (d.year == current.year &&
+          d.month == current.month &&
+          d.day == current.day) {
+        streak++;
+        current = current.subtract(const Duration(days: 1));
+      } else {
+        break;
+      }
     }
-  } else {
-    dates.remove(today);
+
+    return streak;
   }
 
-  await ref.set({'dates': dates});
-}
+  Future<void> updateStreak() async {
+    final uid = auth.currentUser!.uid;
+    final today = getTodayString();
+
+    final snapshot = await habits.get();
+    final docs = snapshot.docs;
+
+    final streakHabits = docs.where((doc) {
+      final data = doc.data();
+      return (data['includeInStreak'] ?? false) == true;
+    }).toList();
+
+    final ref = firestore
+        .collection('users')
+        .doc(uid)
+        .collection('streaks')
+        .doc('main');
+
+    if (streakHabits.isEmpty) {
+      await ref.set({'dates': [], 'graceDays': 0});
+      return;
+    }
+
+    final allComplete = streakHabits.every((doc) {
+      final data = doc.data();
+      final List completedDates = List.from(data['completedDates'] ?? []);
+      return completedDates.contains(today);
+    });
+
+    final docSnap = await ref.get();
+
+    List<String> dates = [];
+    int graceDays = 0;
+
+    if (docSnap.exists) {
+      final data = docSnap.data();
+      dates = List<String>.from(data?['dates'] ?? []);
+      graceDays = data?['graceDays'] ?? 0;
+    }
+    String? lastRewardedDate = docSnap.data()?['lastRewardedDate'];
+
+    if (allComplete) {
+      if (!dates.contains(today)) {
+        dates.add(today);
+      }
+    } else {
+      if (graceDays > 0) {
+        graceDays -= 1;
+
+        if (!dates.contains(today)) {
+          dates.add(today);
+        }
+      } else {
+        dates.remove(today);
+      }
+    }
+    final currentStreak = calculateCurrentStreak(dates);
+
+    if (currentStreak > 0 &&
+        currentStreak % 10 == 0 &&
+        lastRewardedDate != today) {
+      graceDays += 1;
+      lastRewardedDate = today;
+    }
+    await ref.set({
+      'dates': dates,
+      'graceDays': graceDays,
+      'lastRewardedDate': lastRewardedDate,
+    });
+  }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> getStreakStream() {
-  final uid = auth.currentUser!.uid;
-  return firestore
-      .collection('users')
-      .doc(uid)
-      .collection('streaks')
-      .doc('main')
-      .snapshots();
-}
-   Stream<QuerySnapshot<Map<String, dynamic>>> getHabits() {
+    final uid = auth.currentUser!.uid;
+    return firestore
+        .collection('users')
+        .doc(uid)
+        .collection('streaks')
+        .doc('main')
+        .snapshots();
+  }
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> getHabits() {
     final uid = auth.currentUser!.uid;
 
     return firestore
