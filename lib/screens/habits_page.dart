@@ -163,7 +163,11 @@ class HabitsPage extends StatelessWidget {
             children: [
               const Text(
                 "Grace Days Earned",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryBrown),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryBrown,
+                ),
               ),
               Text(
                 graceDays.toString(),
@@ -198,17 +202,41 @@ class HabitsPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Your Stats Today", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryBrown)),
+              const Text(
+                "Your Stats Today",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryBrown,
+                ),
+              ),
               const SizedBox(height: 15),
               Row(
                 children: [
-                  _buildStatCard("${stats['completed']}", "out of your ${stats['total']} tasks have been marked completed today!"),
+                  _buildStatCard(
+                    "${stats['completed']}",
+                    "out of your ${stats['total']} streak tasks have been marked completed today!",
+                    
+                  ),
                   const SizedBox(width: 15),
-                  _buildStatCard("${stats['duration']}", "that's the number of minutes you devoted to completed tasks today!"),
+                
+                  _buildStatCard(
+                    "${stats['weeklyCompleted']}",
+                    " tasks checked off this week",
+                   
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
-              const Center(child: Text("consistency is the quiet engine of success.", style: TextStyle(fontStyle: FontStyle.italic, color: AppColors.primaryBrown))),
+              const Center(
+                child: Text(
+                  "consistency is the quiet engine of success.",
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: AppColors.primaryBrown,
+                  ),
+                ),
+              ),
             ],
           ),
         );
@@ -220,12 +248,30 @@ class HabitsPage extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: AppColors.cardColor, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: AppColors.cardColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           children: [
-            CircleAvatar(backgroundColor: AppColors.primaryBrown, child: Text(number, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+            CircleAvatar(
+              backgroundColor: AppColors.primaryBrown,
+              child: Text(
+                number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
             const SizedBox(height: 10),
-            Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white)),
+
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, color: Colors.white),
+            ),
           ],
         ),
       ),

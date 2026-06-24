@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crumb/widgets/top_header.dart';
 import 'package:crumb/screens/connect_buddy_page.dart';
 import 'package:crumb/widgets/app_colors.dart';
+import 'package:crumb/screens/goalsetup_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,7 +21,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final HabitService habitService = HabitService();
 
-  // Mapping days of week to their respective integer IDs
+  
   final List<String> weekdaysList = [
     'Monday',
     'Tuesday',
@@ -346,7 +347,32 @@ class _HomePageState extends State<HomePage> {
                     ),
                     activeColor: AppColors.primaryBrown,
                     value: includeInStreak,
-                    onChanged: (value) {
+                    onChanged: (value) async {
+                      if (!value) {
+                        final uid = FirebaseAuth.instance.currentUser!.uid;
+
+                        final snapshot = await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(uid)
+                            .collection('habits')
+                            .where('includeInStreak', isEqualTo: true)
+                            .get();
+
+                        if (snapshot.docs.length <= 1) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "At least one habit must remain in your streak",
+                                style: TextStyle(fontSize: 13),
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+                      }
+
                       setState(() => includeInStreak = value);
                       habitService.toggleStreak(habitId, value);
                     },
@@ -409,6 +435,53 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _showGoalCompletedDialog(BuildContext context, int goalDays) async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      'lastCompletedGoal': goalDays,
+    }, SetOptions(merge: true));
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.backgroundColor,
+          title: const Text(
+            "Goal Completed 🎉",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryBrown,
+            ),
+          ),
+          content: Text(
+            "You completed your $goalDays-day streak!\n\nReady to set a new goal?",
+            style: const TextStyle(color: AppColors.primaryBrown),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Later"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GoalSetupPage(),
+                  ),
+                );
+              },
+              child: const Text("Set New Goal"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -439,7 +512,15 @@ class _HomePageState extends State<HomePage> {
                     final data = streakSnap.data?.data();
                     final List dates = data?['dates'] ?? [];
                     final streakDays = dates.length;
+                    final userData = userSnap.data?.data();
+                    final lastCompletedGoal = userData?['lastCompletedGoal'];
 
+                    if (streakDays >= goalDays &&
+                        lastCompletedGoal != goalDays) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _showGoalCompletedDialog(context, goalDays);
+                      });
+                    }
                     return Padding(
                       padding: const EdgeInsets.only(top: 20),
                       child: SizedBox(
@@ -556,9 +637,9 @@ class _HomePageState extends State<HomePage> {
 
                           final now = DateTime.now();
                           final int todayWeekday =
-                              now.weekday; // 1 = Monday, 7 = Sunday
+                              now.weekday; 
 
-                          // Split the source query into active items and passive items
+                          
                           final visibleHabits = habits.where((habit) {
                             final data = habit.data();
                             final repeatType = data['repeatType'] ?? 'daily';
@@ -576,7 +657,7 @@ class _HomePageState extends State<HomePage> {
                                 !daysOfWeek.contains(todayWeekday);
                           }).toList();
 
-                          // Combine both sets into one layout engine list
+                         
                           final combinedHabits = [
                             ...visibleHabits,
                             ...otherHabits,
@@ -596,12 +677,12 @@ class _HomePageState extends State<HomePage> {
                                 today,
                               );
 
-                              // Check if this item belongs to the second group
+                              
                               final bool isOtherHabit =
                                   index >= visibleHabits.length;
 
                               return Card(
-                                // Subtly fade out the card opacity if it's an off-day habit
+                               
                                 color: isOtherHabit
                                     ? AppColors.backgroundColor.withOpacity(0.6)
                                     : AppColors.backgroundColor,
