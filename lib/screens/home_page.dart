@@ -8,7 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crumb/widgets/top_header.dart';
 import 'package:crumb/screens/connect_buddy_page.dart';
-import 'package:crumb/widgets/app_colors.dart'; 
+import 'package:crumb/widgets/app_colors.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,6 +19,17 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final HabitService habitService = HabitService();
+
+  // Mapping days of week to their respective integer IDs
+  final List<String> weekdaysList = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
 
   Future<void> loadGoal() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
@@ -36,8 +47,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void showAddHabitDialog(BuildContext context) {
+    bool includeInStreak = false;
     final TextEditingController habitController = TextEditingController();
-    final TextEditingController durationController = TextEditingController();
+    String repeatType = 'daily';
+    List<int> selectedDays = [];
     String errorMessage = '';
 
     showDialog(
@@ -47,7 +60,13 @@ class _HomePageState extends State<HomePage> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: AppColors.backgroundColor,
-              title: const Text("Add Habit", style: TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
+              title: const Text(
+                "Add Habit",
+                style: TextStyle(
+                  color: AppColors.primaryBrown,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -55,14 +74,58 @@ class _HomePageState extends State<HomePage> {
                     controller: habitController,
                     decoration: const InputDecoration(labelText: "Habit"),
                   ),
-                  TextField(
-                    controller: durationController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: "Duration",
-                      suffixText: "min",
+                  const SizedBox(height: 10),
+                  DropdownButton<String>(
+                    value: repeatType,
+                    items: const [
+                      DropdownMenuItem(value: 'daily', child: Text("Everyday")),
+                      DropdownMenuItem(
+                        value: 'weekly',
+                        child: Text("Specific Days"),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        repeatType = value!;
+                      });
+                    },
+                  ),
+                  if (repeatType == 'weekly') ...[
+                    Wrap(
+                      spacing: 6,
+                      children: List.generate(weekdaysList.length, (index) {
+                        final int dayValue = index + 1;
+                        return FilterChip(
+                          label: Text(weekdaysList[index]),
+                          selected: selectedDays.contains(dayValue),
+                          onSelected: (selected) {
+                            setDialogState(() {
+                              if (selected) {
+                                selectedDays.add(dayValue);
+                              } else {
+                                selectedDays.remove(dayValue);
+                              }
+                            });
+                          },
+                        );
+                      }),
                     ),
+                  ],
+
+                  const SizedBox(height: 10),
+
+                  SwitchListTile(
+                    title: const Text(
+                      "Include in streak",
+                      style: TextStyle(color: AppColors.primaryBrown),
+                    ),
+                    activeColor: AppColors.primaryBrown,
+                    value: includeInStreak,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        includeInStreak = value;
+                      });
+                    },
                   ),
                   if (errorMessage.isNotEmpty)
                     Text(
@@ -74,18 +137,28 @@ class _HomePageState extends State<HomePage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.primaryBrown)),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: AppColors.primaryBrown),
+                  ),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrown),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBrown,
+                  ),
                   onPressed: () {
                     habitService.addHabit(
                       habitController.text.trim(),
-                      "${durationController.text.trim()} min",
+                      repeatType,
+                      selectedDays,
+                      includeInStreak,
                     );
                     Navigator.pop(context);
                   },
-                  child: const Text("Add", style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    "Add",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -101,20 +174,34 @@ class _HomePageState extends State<HomePage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: AppColors.backgroundColor,
-          title: const Text("Delete Habit", style: TextStyle(color: AppColors.warningRed, fontWeight: FontWeight.bold)),
+          title: const Text(
+            "Delete Habit",
+            style: TextStyle(
+              color: AppColors.warningRed,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           content: const Text("Are you sure you want to delete this habit?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel", style: TextStyle(color: AppColors.primaryBrown)),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: AppColors.primaryBrown),
+              ),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.warningRed),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warningRed,
+              ),
               onPressed: () {
                 habitService.deleteHabit(habitId);
                 Navigator.pop(context);
               },
-              child: const Text("Delete", style: TextStyle(color: Colors.white)),
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -127,10 +214,8 @@ class _HomePageState extends State<HomePage> {
       text: data['title'],
     );
 
-    final TextEditingController durationController = TextEditingController(
-      text: data['duration'].replaceAll(" min", ""),
-    );
-
+    String repeatType = data['repeatType'] ?? 'daily';
+    List<int> selectedDays = List<int>.from(data['daysOfWeek'] ?? []);
     String errorMessage = '';
 
     showDialog(
@@ -140,7 +225,13 @@ class _HomePageState extends State<HomePage> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: AppColors.backgroundColor,
-              title: const Text("Edit Habit", style: TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
+              title: const Text(
+                "Edit Habit",
+                style: TextStyle(
+                  color: AppColors.primaryBrown,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -149,15 +240,41 @@ class _HomePageState extends State<HomePage> {
                     decoration: const InputDecoration(labelText: "Habit"),
                   ),
                   const SizedBox(height: 10),
-                  TextField(
-                    controller: durationController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: "Duration",
-                      suffixText: "min",
-                    ),
+                  DropdownButton<String>(
+                    value: repeatType,
+                    items: const [
+                      DropdownMenuItem(value: 'daily', child: Text("Everyday")),
+                      DropdownMenuItem(
+                        value: 'weekly',
+                        child: Text("Specific Days"),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        repeatType = value!;
+                      });
+                    },
                   ),
+                  if (repeatType == 'weekly')
+                    Wrap(
+                      spacing: 6,
+                      children: List.generate(weekdaysList.length, (index) {
+                        final int dayValue = index + 1;
+                        return FilterChip(
+                          label: Text(weekdaysList[index]),
+                          selected: selectedDays.contains(dayValue),
+                          onSelected: (selected) {
+                            setDialogState(() {
+                              if (selected) {
+                                selectedDays.add(dayValue);
+                              } else {
+                                selectedDays.remove(dayValue);
+                              }
+                            });
+                          },
+                        );
+                      }),
+                    ),
                   if (errorMessage.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -171,19 +288,28 @@ class _HomePageState extends State<HomePage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.primaryBrown)),
+                  child: const Text(
+                    "Cancel",
+                    style: TextStyle(color: AppColors.primaryBrown),
+                  ),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrown),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryBrown,
+                  ),
                   onPressed: () {
                     habitService.updateHabit(
                       habitId,
                       habitController.text.trim(),
-                      "${durationController.text.trim()} min",
+                      repeatType,
+                      selectedDays,
                     );
                     Navigator.pop(context);
                   },
-                  child: const Text("Update", style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    "Update",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -199,28 +325,85 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: AppColors.backgroundColor,
-          title: Text(data['title'], style: const TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
-          content: StatefulBuilder(
-            builder: (context, setState) {
-              return SwitchListTile(
-                title: const Text("Include in streak", style: TextStyle(color: AppColors.primaryBrown)),
-                activeColor: AppColors.primaryBrown,
-                value: includeInStreak,
-                onChanged: (value) {
-                  setState(() => includeInStreak = value);
-                  habitService.toggleStreak(habitId, value);
-                },
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close", style: TextStyle(color: AppColors.primaryBrown)),
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: AppColors.backgroundColor,
+              title: Text(
+                data['title'],
+                style: const TextStyle(
+                  color: AppColors.primaryBrown,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SwitchListTile(
+                    title: const Text(
+                      "Include in streak",
+                      style: TextStyle(color: AppColors.primaryBrown),
+                    ),
+                    activeColor: AppColors.primaryBrown,
+                    value: includeInStreak,
+                    onChanged: (value) {
+                      setState(() => includeInStreak = value);
+                      habitService.toggleStreak(habitId, value);
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryBrown,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            showEditHabitDialog(context, habitId, data);
+                          },
+                          child: const Text(
+                            "Edit",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.warningRed,
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            confirmDeleteHabit(context, habitId);
+                          },
+                          child: const Text(
+                            "Delete",
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Close",
+                    style: TextStyle(color: AppColors.primaryBrown),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -301,9 +484,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 20),
-            
-            // This Expanded forces the container asset to fill remaining space
-            // and allows inside elements to handle scrolling independently
             Expanded(
               child: Container(
                 margin: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
@@ -323,176 +503,193 @@ class _HomePageState extends State<HomePage> {
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 35,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.backgroundColor,
-                          foregroundColor: AppColors.cardColor,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
                           ),
                         ),
-                        onPressed: () => showAddHabitDialog(context),
-                        child: const Text("+ Add", style: TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
+                        SizedBox(
+                          height: 35,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.backgroundColor,
+                              foregroundColor: AppColors.cardColor,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            onPressed: () => showAddHabitDialog(context),
+                            child: const Text(
+                              "+ Add",
+                              style: TextStyle(
+                                color: AppColors.primaryBrown,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: StreamBuilder(
+                        stream: habitService.habits.snapshots(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            );
+                          }
+
+                          final habits = snapshot.data!.docs;
+
+                          if (habits.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                "No habits added yet!",
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            );
+                          }
+
+                          final now = DateTime.now();
+                          final int todayWeekday =
+                              now.weekday; // 1 = Monday, 7 = Sunday
+
+                          // Split the source query into active items and passive items
+                          final visibleHabits = habits.where((habit) {
+                            final data = habit.data();
+                            final repeatType = data['repeatType'] ?? 'daily';
+                            final List daysOfWeek = data['daysOfWeek'] ?? [];
+                            return repeatType == 'daily' ||
+                                (repeatType == 'weekly' &&
+                                    daysOfWeek.contains(todayWeekday));
+                          }).toList();
+
+                          final otherHabits = habits.where((habit) {
+                            final data = habit.data();
+                            final repeatType = data['repeatType'] ?? 'daily';
+                            final List daysOfWeek = data['daysOfWeek'] ?? [];
+                            return repeatType == 'weekly' &&
+                                !daysOfWeek.contains(todayWeekday);
+                          }).toList();
+
+                          // Combine both sets into one layout engine list
+                          final combinedHabits = [
+                            ...visibleHabits,
+                            ...otherHabits,
+                          ];
+
+                          return ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            itemCount: combinedHabits.length,
+                            itemBuilder: (context, index) {
+                              final habit = combinedHabits[index];
+                              final data = habit.data();
+
+                              final today = habitService.getTodayString();
+                              final List completedDates =
+                                  data['completedDates'] ?? [];
+                              final isDoneToday = completedDates.contains(
+                                today,
+                              );
+
+                              // Check if this item belongs to the second group
+                              final bool isOtherHabit =
+                                  index >= visibleHabits.length;
+
+                              return Card(
+                                // Subtly fade out the card opacity if it's an off-day habit
+                                color: isOtherHabit
+                                    ? AppColors.backgroundColor.withOpacity(0.6)
+                                    : AppColors.backgroundColor,
+                                child: ListTile(
+                                  title: Text(
+                                    data['title'],
+                                    style: TextStyle(
+                                      color: isOtherHabit
+                                          ? AppColors.primaryBrown.withOpacity(
+                                              0.6,
+                                            )
+                                          : AppColors.primaryBrown,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  leading: Checkbox(
+                                    value: isDoneToday,
+                                    activeColor: AppColors.primaryBrown,
+                                    checkColor: Colors.white,
+                                    onChanged: isOtherHabit
+                                        ? null
+                                        : (value) async {
+                                            if (value == true) {
+                                              await habitService
+                                                  .markHabitDoneToday(habit.id);
+                                            } else {
+                                              await habitService
+                                                  .unmarkHabitToday(habit.id);
+                                            }
+                                          },
+                                  ),
+
+                                  onTap: () =>
+                                      showHabitOptions(context, habit.id, data),
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                
-                // Nesting an Expanded around ListView.builder lets it scroll internally
-                Expanded(
-                  child: StreamBuilder(
-                    stream: habitService.habits.snapshots(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                          ),
-                        );
-                      }
-
-                      final habits = snapshot.data!.docs;
-
-                      if (habits.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            "No habits added yet!",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: habits.length,
-                        itemBuilder: (context, index) {
-                          final habit = habits[index];
-                          final data = habit.data();
-
-                          final today = habitService.getTodayString();
-                          final List completedDates =
-                              data['completedDates'] ?? [];
-
-                          final isDoneToday = completedDates.contains(
-                            today,
-                          );
-
-                          return Card(
-                            color: AppColors.backgroundColor,
-                            child: ListTile(
-                              title: Text(data['title'], style: const TextStyle(color: AppColors.primaryBrown, fontWeight: FontWeight.bold)),
-                              subtitle: Text(data['duration']),
-                              leading: Checkbox(
-                                value: isDoneToday,
-                                activeColor: AppColors.primaryBrown,
-                                checkColor: Colors.white,
-                                onChanged: (value) async {
-                                  if (value == true) {
-                                    await habitService.markHabitDoneToday(
-                                      habit.id,
-                                    );
-                                  } else {
-                                    await habitService.unmarkHabitToday(
-                                      habit.id,
-                                    );
-                                  }
-                                },
-                              ),
-                              trailing: PopupMenuButton<String>(
-                                iconColor: AppColors.primaryBrown,
-                                onSelected: (value) {
-                                  if (value == 'edit') {
-                                    showEditHabitDialog(
-                                      context,
-                                      habit.id,
-                                      data,
-                                    );
-                                  }
-                                  if (value == 'delete') {
-                                    confirmDeleteHabit(context, habit.id);
-                                  }
-                                },
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(
-                                    value: 'edit',
-                                    child: Text('Edit'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text('Delete'),
-                                  ),
-                                ],
-                              ),
-                              onTap: () => showHabitOptions(
-                                context,
-                                habit.id,
-                                data,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
-    ),
-  ),
-  bottomNavigationBar: BottomNavigationBar(
-    backgroundColor: AppColors.lightBrown,
-    selectedItemColor: Colors.white,
-    unselectedItemColor: Colors.white70,
-    type: BottomNavigationBarType.fixed,
-    currentIndex: 0,
-    items: const [
-      BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.check_circle),
-        label: "Habits",
       ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.people_alt_rounded),
-        label: "Buddy",
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: AppColors.lightBrown,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 0,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.check_circle),
+            label: "Habits",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_alt_rounded),
+            label: "Buddy",
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
+        onTap: (index) {
+          if (index == 0) return;
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => HabitsPage()),
+            );
+          }
+          if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
+            );
+          }
+          if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfilePage()),
+            );
+          }
+        },
       ),
-      BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-    ],
-    onTap: (index) {
-      if (index == 0) return;
-
-      if (index == 1) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => HabitsPage()),
-        );
-      }
-
-      if (index == 2) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
-        );
-      }
-
-      if (index == 3) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfilePage()),
-        );
-      }
-    },
-  ),
-);
+    );
   }
 }
