@@ -125,35 +125,47 @@ class _ConnectBuddyPageState extends State<ConnectBuddyPage> {
     Widget bodyContent;
 
     if (_currentBuddyUid != null) {
-      bodyContent = FutureBuilder<List<DocumentSnapshot>>(
-        future: Future.wait([
-          FirebaseFirestore.instance.collection('users').doc(authService.value.currentUser!.uid).get(),
-          FirebaseFirestore.instance.collection('users').doc(_currentBuddyUid!).get(),
-        ]),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(primaryBrown)),
-            );
-          }
+  bodyContent = FutureBuilder<List<dynamic>>(
+    future: Future.wait([
+      FirebaseFirestore.instance.collection('users').doc(authService.value.currentUser!.uid).get(),
+      FirebaseFirestore.instance.collection('users').doc(_currentBuddyUid!).get(),
+      FirebaseFirestore.instance.collection('users').doc(authService.value.currentUser!.uid).collection('streaks').doc('main').get(),
+      FirebaseFirestore.instance.collection('users').doc(_currentBuddyUid!).collection('streaks').doc('main').get(),
+    ]),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(primaryBrown)));
+      }
 
-          final myDoc = snapshot.data![0];
-          final buddyDoc = snapshot.data![1];
-          final myData = myDoc.data() as Map<String, dynamic>?;
-          final buddyData = buddyDoc.data() as Map<String, dynamic>?;
+      final myDoc = snapshot.data![0];
+      final buddyDoc = snapshot.data![1];
+      final myStreakDoc = snapshot.data![2];
+      final buddyStreakDoc = snapshot.data![3];
 
-          return BuddiesPage(
-            currentUserName: myData?['username'] ?? 'Me',
-            currentUserPfpBase64: myData?['photoUrl'],
-            currentUserStreak: 0,
-            buddyName: buddyData?['username'] ?? 'Buddy',
-            buddyPfpBase64: buddyData?['photoUrl'],
-            buddyStreak: 0,
-            recentActivity: const [],
-            onUnlink: _unlinkBuddy,
-          );
-        },
+      final myData = myDoc.data() as Map<String, dynamic>?;
+      final buddyData = buddyDoc.data() as Map<String, dynamic>?;
+      final myStreakData = myStreakDoc.data() as Map<String, dynamic>?;
+      final buddyStreakData = buddyStreakDoc.data() as Map<String, dynamic>?;
+
+      final myDates = myStreakDoc.exists && myStreakData != null
+          ? (myStreakData['dates'] as List<dynamic>?) ?? []
+          : [];
+      final buddyDates = buddyStreakDoc.exists && buddyStreakData != null
+          ? (buddyStreakData['dates'] as List<dynamic>?) ?? []
+          : [];
+
+      return BuddiesPage(
+        currentUserName: myData?['username'] ?? 'Me',
+        currentUserPfpBase64: myData?['photoUrl'],
+        currentUserStreak: myDates.length, // This now pulls the actual count
+        buddyName: buddyData?['username'] ?? 'Buddy',
+        buddyPfpBase64: buddyData?['photoUrl'],
+        buddyStreak: buddyDates.length,    // This now pulls the actual count
+        recentActivity: const [],
+        onUnlink: _unlinkBuddy,
       );
+    },
+  );
     } else {
       bodyContent = SafeArea(
         child: SingleChildScrollView(

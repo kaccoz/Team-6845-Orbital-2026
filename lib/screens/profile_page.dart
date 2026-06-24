@@ -605,134 +605,88 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
-
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-             TopHeader(title: "Profile", uid: uid),
-              const SizedBox(height: 28),
-
-              // AVATAR
-              GestureDetector(
-                onTap: _chooseImage,
-                child: CircleAvatar(
-                  radius: 88,
-                  backgroundColor: AppColors.primaryBrown,
-                  child: CircleAvatar(
-                    radius: 80,
-                    backgroundColor: AppColors.cardColor,
-                    backgroundImage: _getProfileImageProvider(),
-                    child: _isUploading
-                        ? const CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.primaryBrown,
-                            ),
-                          )
-                        : (!_hasProfilePicture && _profileImage == null)
-                        ? const Icon(
-                            Icons.camera_alt,
-                            size: 35,
-                            color: AppColors.primaryBrown,
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // USERNAME
-              Text(
-                authService.value.currentUser?.displayName ?? 'Username',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primaryBrown,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // LINK UID
-              Text(
-                _myLinkUID != null ? "Your UID: $_myLinkUID" : "Loading UID...",
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBrown,
-                  letterSpacing: 1.1,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // MENU OPTIONS CARD
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.cardColor,
-                  borderRadius: BorderRadius.circular(24),
-                ),
+        child: Column(
+          children: [
+            TopHeader(
+              title: "Profile",
+              uid: FirebaseAuth.instance.currentUser!.uid,
+            ),
+            
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _buildMenuRow('Update Username', _showUsernameUpdateDialog),
-                    const Divider(
-                      color: AppColors.primaryBrown,
-                      thickness: 1,
-                      height: 24,
+                    const SizedBox(height: 28),
+                    // AVATAR
+                    GestureDetector(
+                      onTap: _chooseImage,
+                      child: CircleAvatar(
+                        radius: 88,
+                        backgroundColor: AppColors.primaryBrown,
+                        child: CircleAvatar(
+                          radius: 80,
+                          backgroundColor: AppColors.cardColor,
+                          backgroundImage: _getProfileImageProvider(),
+                          child: _isUploading
+                              ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryBrown))
+                              : (!_hasProfilePicture && _profileImage == null)
+                                  ? const Icon(Icons.camera_alt, size: 35, color: AppColors.primaryBrown)
+                                  : null,
+                        ),
+                      ),
                     ),
-
-                    _buildMenuRow('Change Password', _showPasswordChangeDialog),
-
-                    const Divider(
-                      color: AppColors.primaryBrown,
-                      thickness: 1,
-                      height: 24,
+                    const SizedBox(height: 15),
+                    Text(
+                      authService.value.currentUser?.displayName ?? 'Username',
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryBrown),
                     ),
-                    _buildMenuRow('Change Email', _showEmailChangeDialog),
+                    const SizedBox(height: 8),
+                    Text(
+                      _myLinkUID != null ? "Your UID: $_myLinkUID" : "Loading UID...",
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primaryBrown, letterSpacing: 1.1),
+                    ),
+                    const SizedBox(height: 32),
+                    // MENU OPTIONS CARD
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: AppColors.cardColor, borderRadius: BorderRadius.circular(24)),
+                      child: Column(
+                        children: [
+                          _buildMenuRow('Update Username', _showUsernameUpdateDialog),
+                          const Divider(color: AppColors.primaryBrown, thickness: 1, height: 24),
+                          _buildMenuRow('Change Password', _showPasswordChangeDialog),
+                          const Divider(color: AppColors.primaryBrown, thickness: 1, height: 24),
+                          _buildMenuRow('Change Email', _showEmailChangeDialog),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: 140,
+                      child: ElevatedButton(
+                        onPressed: logout,
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBrown, foregroundColor: Colors.white, shape: const StadiumBorder()),
+                        child: const Text('Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: 180,
+                      child: ElevatedButton(
+                        onPressed: _showDeleteAccountDialog,
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.warningRed, foregroundColor: Colors.white, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(vertical: 8)),
+                        child: const Text('Delete Account', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-
-              SizedBox(
-                width: 140,
-                child: ElevatedButton(
-                  onPressed: logout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBrown, 
-                    foregroundColor: Colors.white,
-                    shape: const StadiumBorder(),
-                  ),
-                  child: const Text(
-                    'Logout',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-              SizedBox(
-                width: 180,
-                child: ElevatedButton(
-                  onPressed: _showDeleteAccountDialog,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.warningRed,
-                    foregroundColor: Colors.white,
-                    shape: const StadiumBorder(),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                  child: const Text(
-                    'Delete Account',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -743,35 +697,19 @@ class _ProfilePageState extends State<ProfilePage> {
         currentIndex: 3,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.check_circle),
-            label: "Habits",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_alt_rounded),
-            label: "Buddy",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: "Habits"),
+          BottomNavigationBarItem(icon: Icon(Icons.people_alt_rounded), label: "Buddy"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
         onTap: (index) {
           if (index == 0) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()),
-              (route) => false,
-            );
+            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => HomePage()), (route) => false);
           }
           if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => HabitsPage()),
-            );
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HabitsPage()));
           }
           if (index == 2) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const ConnectBuddyPage()),
-            );
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ConnectBuddyPage()));
           }
         },
       ),

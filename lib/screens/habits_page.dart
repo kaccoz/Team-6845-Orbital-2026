@@ -79,9 +79,13 @@ class HabitsPage extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30),
 
                     _buildGraceDaysWidget(doc),
+
+                    const SizedBox(height: 0),
+
+                    _buildStatsSection(),
                   ],
                 );
               },
@@ -158,26 +162,72 @@ class HabitsPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Grace Days",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                "Grace Days Earned",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryBrown),
               ),
               Text(
                 graceDays.toString(),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.primaryBrown,
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 0),
           Text(
             message,
-            style: const TextStyle(fontSize: 13, color: Colors.grey),
+            style: const TextStyle(fontSize: 13, color: Colors.white),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatsSection() {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: habitService.getDailyStats(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final stats = snapshot.data!;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Your Stats Today", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryBrown)),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  _buildStatCard("${stats['completed']}", "out of your ${stats['total']} tasks have been marked completed today!"),
+                  const SizedBox(width: 15),
+                  _buildStatCard("${stats['duration']}", "that's the number of minutes you devoted to completed tasks today!"),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Center(child: Text("consistency is the quiet engine of success.", style: TextStyle(fontStyle: FontStyle.italic, color: AppColors.primaryBrown))),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(String number, String text) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: AppColors.cardColor, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          children: [
+            CircleAvatar(backgroundColor: AppColors.primaryBrown, child: Text(number, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+            const SizedBox(height: 10),
+            Text(text, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.white)),
+          ],
+        ),
       ),
     );
   }
