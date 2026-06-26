@@ -21,7 +21,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final HabitService habitService = HabitService();
 
-  
   final List<String> weekdaysList = [
     'Monday',
     'Tuesday',
@@ -511,7 +510,9 @@ class _HomePageState extends State<HomePage> {
                   builder: (context, streakSnap) {
                     final data = streakSnap.data?.data();
                     final List dates = data?['dates'] ?? [];
-                    final streakDays = dates.length;
+                    final streakDays = habitService.calculateCurrentStreak(
+                      List<String>.from(dates),
+                    );
                     final userData = userSnap.data?.data();
                     final lastCompletedGoal = userData?['lastCompletedGoal'];
 
@@ -636,10 +637,8 @@ class _HomePageState extends State<HomePage> {
                           }
 
                           final now = DateTime.now();
-                          final int todayWeekday =
-                              now.weekday; 
+                          final int todayWeekday = now.weekday;
 
-                          
                           final visibleHabits = habits.where((habit) {
                             final data = habit.data();
                             final repeatType = data['repeatType'] ?? 'daily';
@@ -657,7 +656,6 @@ class _HomePageState extends State<HomePage> {
                                 !daysOfWeek.contains(todayWeekday);
                           }).toList();
 
-                         
                           final combinedHabits = [
                             ...visibleHabits,
                             ...otherHabits,
@@ -677,12 +675,10 @@ class _HomePageState extends State<HomePage> {
                                 today,
                               );
 
-                              
                               final bool isOtherHabit =
                                   index >= visibleHabits.length;
 
                               return Card(
-                               
                                 color: isOtherHabit
                                     ? AppColors.backgroundColor.withOpacity(0.6)
                                     : AppColors.backgroundColor,

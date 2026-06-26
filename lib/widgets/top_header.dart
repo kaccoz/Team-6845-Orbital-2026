@@ -1,16 +1,13 @@
 // lib/widgets/top_header.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crumb/services/habit_service.dart';
 
 class TopHeader extends StatelessWidget {
   final String title;
   final String uid;
 
-  const TopHeader({
-    super.key,
-    required this.title,
-    required this.uid,
-  });
+  const TopHeader({super.key, required this.title, required this.uid});
 
   @override
   Widget build(BuildContext context) {
@@ -35,11 +32,7 @@ class TopHeader extends StatelessWidget {
 
               const Align(
                 alignment: Alignment.centerLeft,
-                child: Icon(
-                  Icons.menu,
-                  size: 32,
-                  color: Color(0xFF3E220F),
-                ),
+                child: Icon(Icons.menu, size: 32, color: Color(0xFF3E220F)),
               ),
 
               Align(
@@ -54,7 +47,10 @@ class TopHeader extends StatelessWidget {
                   builder: (context, snapshot) {
                     final data = snapshot.data?.data();
                     final List dates = data?['dates'] ?? [];
-                    final streakDays = dates.length;
+
+                    final streakDays = HabitService().calculateCurrentStreak(
+                      List<String>.from(dates),
+                    );
 
                     return Container(
                       padding: const EdgeInsets.symmetric(

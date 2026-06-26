@@ -6,6 +6,7 @@ import 'package:async/async.dart';
 class HabitService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth auth = FirebaseAuth.instance;
+
   CollectionReference<Map<String, dynamic>> get habits {
     final uid = auth.currentUser!.uid;
     return firestore.collection('users').doc(uid).collection('habits');
@@ -49,39 +50,23 @@ class HabitService {
 
   Future<void> markHabitDoneToday(String habitId) async {
     final today = getTodayString();
-
-    final doc = await habits.doc(habitId).get();
-    final data = doc.data()!;
-
-    List completedDates = List.from(data['completedDates'] ?? []);
-
-    if (!completedDates.contains(today)) {
-      completedDates.add(today);
-    }
-
-    await habits.doc(habitId).update({'completedDates': completedDates});
-
+    await habits.doc(habitId).update({
+      'completedDates': FieldValue.arrayUnion([today])
+    });
     await updateStreak();
   }
 
   Future<void> deleteHabit(String habitId) async {
     await habits.doc(habitId).delete();
-
     await updateStreak();
   }
 
+
   Future<void> unmarkHabitToday(String habitId) async {
     final today = getTodayString();
-
-    final doc = await habits.doc(habitId).get();
-    final data = doc.data()!;
-
-    List completedDates = List.from(data['completedDates'] ?? []);
-
-    completedDates.remove(today);
-
-    await habits.doc(habitId).update({'completedDates': completedDates});
-
+    await habits.doc(habitId).update({
+      'completedDates': FieldValue.arrayRemove([today])
+    });
     await updateStreak();
   }
 
@@ -93,12 +78,10 @@ class HabitService {
   Future<bool> checkTodayStreak() async {
     final snapshot = await habits.get();
     final docs = snapshot.docs;
-
     final today = getTodayString();
 
     final todaysHabits = docs.where((doc) {
       final data = doc.data();
-
       return data['includeInStreak'] == true && isHabitScheduledToday(data);
     }).toList();
 
@@ -107,7 +90,6 @@ class HabitService {
     final incomplete = todaysHabits.where((doc) {
       final data = doc.data();
       final List completedDates = data['completedDates'] ?? [];
-
       return !completedDates.contains(today);
     });
 
@@ -117,9 +99,7 @@ class HabitService {
   bool isHabitScheduledToday(Map<String, dynamic> data) {
     final today = DateTime.now().weekday; 
 
-    if (data['repeatType'] == 'daily') {
-      return true;
-    }
+    if (data['repeatType'] == 'daily') return true;
 
     if (data['repeatType'] == 'weekly') {
       List days = data['daysOfWeek'] ?? [];
@@ -130,29 +110,45 @@ class HabitService {
   }
 
   int calculateCurrentStreak(List<String> dates) {
-    dates.sort();
+  if (dates.isEmpty) return 0;
 
-    int streak = 0;
+  final sortedDates = List<String>.from(dates)..sort();
 
-    DateTime today = DateTime.now();
-    DateTime current = DateTime(today.year, today.month, today.day);
+  DateTime today = DateTime.now();
+  DateTime todayMidnight = DateTime(today.year, today.month, today.day);
 
-    for (int i = dates.length - 1; i >= 0; i--) {
-      DateTime d = DateTime.parse(dates[i]);
-
-      if (d.year == current.year &&
-          d.month == current.month &&
-          d.day == current.day) {
-        streak++;
-        current = current.subtract(const Duration(days: 1));
-      } else {
-        break;
-      }
-    }
-
-    return streak;
+  final lastDate = DateTime.parse(sortedDates.last);
+  final lastCompletedMidnight = DateTime(lastDate.year, lastDate.month, lastDate.day);
+  
+  final gapInDays = todayMidnight.difference(lastCompletedMidnight).inDays;
+  
+  
+  if (gapInDays > 1) {
+    return 0; 
   }
 
+  DateTime current = sortedDates.contains(getTodayString()) 
+      ? todayMidnight 
+      : todayMidnight.subtract(const Duration(days: 1));
+
+  int streak = 0;
+
+  for (int i = sortedDates.length - 1; i >= 0; i--) {
+    DateTime d = DateTime.parse(sortedDates[i]);
+    DateTime checkDate = DateTime(d.year, d.month, d.day);
+
+    if (checkDate.isAtSameMomentAs(current)) {
+      streak++;
+      current = current.subtract(const Duration(days: 1));
+    } else if (checkDate.isBefore(current)) {
+      break;
+    }
+  }
+
+  return streak;
+}
+
+  
   Future<void> updateStreak() async {
     final uid = auth.currentUser!.uid;
     final today = getTodayString();
@@ -162,9 +158,7 @@ class HabitService {
 
     final todaysHabits = docs.where((doc) {
       final data = doc.data();
-
-      return (data['includeInStreak'] ?? false) == true &&
-          isHabitScheduledToday(data);
+      return (data['includeInStreak'] ?? false) == true && isHabitScheduledToday(data);
     }).toList();
 
     final ref = firestore
@@ -173,70 +167,53 @@ class HabitService {
         .collection('streaks')
         .doc('main');
 
-    if (todaysHabits.isEmpty) {
-      final docSnap = await ref.get();
-
-      List<String> dates = List<String>.from(docSnap.data()?['dates'] ?? []);
-      int graceDays = docSnap.data()?['graceDays'] ?? 0;
-
-      if (dates.contains(today)) {
-        if (graceDays > 0) {
-          graceDays -= 1;
-        } else {
-          dates.remove(today);
-        }
-      }
-
-      await ref.set({
-        'dates': dates,
-        'graceDays': graceDays,
-        'lastRewardedDate': docSnap.data()?['lastRewardedDate'],
-      });
-
-      return;
-    }
-
-    final allComplete = todaysHabits.every((doc) {
-      final data = doc.data();
-      final List completedDates = List.from(data['completedDates'] ?? []);
-      return completedDates.contains(today);
-    });
-
     final docSnap = await ref.get();
-
     List<String> dates = [];
     int graceDays = 0;
+    String? lastRewardedDate;
 
     if (docSnap.exists) {
       final data = docSnap.data();
       dates = List<String>.from(data?['dates'] ?? []);
       graceDays = data?['graceDays'] ?? 0;
+      lastRewardedDate = data?['lastRewardedDate'];
     }
-    String? lastRewardedDate = docSnap.data()?['lastRewardedDate'];
 
-    if (allComplete) {
+    if (todaysHabits.isEmpty) {
+    
       if (!dates.contains(today)) {
         dates.add(today);
       }
     } else {
-      if (graceDays > 0) {
-        graceDays -= 1;
+      final allComplete = todaysHabits.every((doc) {
+        final data = doc.data();
+        final List completedDates = List.from(data['completedDates'] ?? []);
+        return completedDates.contains(today);
+      });
 
+      if (allComplete) {
         if (!dates.contains(today)) {
           dates.add(today);
         }
       } else {
-        dates.remove(today);
+        if (graceDays > 0) {
+          graceDays -= 1;
+          if (!dates.contains(today)) {
+            dates.add(today);
+          }
+        } else {
+          dates.remove(today);
+        }
       }
     }
+
     final currentStreak = calculateCurrentStreak(dates);
 
-    if (currentStreak > 0 &&
-        currentStreak % 10 == 0 &&
-        lastRewardedDate != today) {
+    if (currentStreak > 0 && currentStreak % 10 == 0 && lastRewardedDate != today) {
       graceDays += 1;
       lastRewardedDate = today;
     }
+
     await ref.set({
       'dates': dates,
       'graceDays': graceDays,
@@ -256,7 +233,6 @@ class HabitService {
 
   Stream<QuerySnapshot<Map<String, dynamic>>> getHabits() {
     final uid = auth.currentUser!.uid;
-
     return firestore
         .collection('users')
         .doc(uid)
@@ -265,6 +241,7 @@ class HabitService {
         .snapshots();
   }
 
+ 
   Future<int> getStreakCount(String uid) async {
     final doc = await firestore
         .collection('users')
@@ -275,8 +252,8 @@ class HabitService {
 
     if (!doc.exists) return 0;
 
-    final List dates = doc.data()?['dates'] ?? [];
-    return dates.length;
+    final List<String> dates = List<String>.from(doc.data()?['dates'] ?? []);
+    return calculateCurrentStreak(dates);
   }
 
   Future<int> getCompletedHabitsToday() async {
@@ -298,9 +275,7 @@ class HabitService {
     final today = DateTime.now();
     final todayString = getTodayString();
 
-    final startOfWeek = today.subtract(
-      Duration(days: today.weekday - 1),
-    ); 
+    final startOfWeek = today.subtract(Duration(days: today.weekday - 1)); 
     final weekDates = List.generate(7, (i) {
       final d = startOfWeek.add(Duration(days: i));
       return "${d.year.toString().padLeft(4, '0')}-"
@@ -316,7 +291,6 @@ class HabitService {
 
     final docs = snapshot.docs;
 
-  
     final todaysStreakHabits = docs.where((doc) {
       final data = doc.data();
       return (data['includeInStreak'] ?? false) && isHabitScheduledToday(data);
@@ -336,14 +310,10 @@ class HabitService {
 
     for (var doc in docs) {
       final data = doc.data();
-
       if (!(data['includeInStreak'] ?? false)) continue;
 
       List completedDates = List.from(data['completedDates'] ?? []);
-
-      weeklyCompleted += completedDates
-          .where((date) => weekDates.contains(date))
-          .length;
+      weeklyCompleted += completedDates.where((date) => weekDates.contains(date)).length;
 
       if (data['repeatType'] == 'daily') {
         weeklyTarget += 7;
@@ -354,7 +324,7 @@ class HabitService {
     }
 
     final totalToday = todaysStreakHabits.length;
-    final percent = totalToday == 0 ? 0 : (completedToday / totalToday) * 100;
+    final percent = totalToday == 0 ? 0.0 : (completedToday / totalToday) * 100;
 
     return {
       "completed": completedToday,
