@@ -157,11 +157,11 @@ class _ConnectBuddyPageState extends State<ConnectBuddyPage> {
       return BuddiesPage(
         currentUserName: myData?['username'] ?? 'Me',
         currentUserPfpBase64: myData?['photoUrl'],
-        currentUserStreak: myDates.length, // This now pulls the actual count
+        currentUserStreak: myDates.length, 
         buddyName: buddyData?['username'] ?? 'Buddy',
+        buddyId: _currentBuddyUid!,
         buddyPfpBase64: buddyData?['photoUrl'],
-        buddyStreak: buddyDates.length,    // This now pulls the actual count
-        recentActivity: const [],
+        buddyStreak: buddyDates.length,   
         onUnlink: _unlinkBuddy,
       );
     },

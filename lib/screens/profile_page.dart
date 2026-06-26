@@ -20,7 +20,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // capture typing inputs for password changes
   final TextEditingController controllerEmail = TextEditingController();
   final TextEditingController controllerPassword = TextEditingController();
 
@@ -142,7 +141,7 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _profileImage = null;
         _dbBase64Image = null;
-        _hasProfilePicture = false; // Photo removed! Flip flag to false
+        _hasProfilePicture = false; 
       });
 
       if (mounted) showSnackBarSuccess('Profile picture removed.');
@@ -177,7 +176,6 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       showSnackBarSuccess('Password changed successfully!');
 
-      // clean up after successful password change
       controllerCurrentEmail.clear();
       controllerCurrentPassword.clear();
       controllerNewPassword.clear();
