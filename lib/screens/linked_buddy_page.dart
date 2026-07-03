@@ -31,7 +31,6 @@ class BuddiesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final String buddyId = "REPLACE_WITH_ACTUAL_BUDDY_ID";
 
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
@@ -58,17 +57,10 @@ class BuddiesPage extends StatelessWidget {
                     const SizedBox(height: 12),
                     StreamBuilder<List<Map<String, dynamic>>>(
                       stream: habitService.getCombinedRecentActivity(uid, buddyId),
-                      builder: (context, snapshot) {  
+                      builder: (context, snapshot) {
                         if (snapshot.hasError) {
                           debugPrint("STREAM ERROR: ${snapshot.error}");
                         }
-                        if (snapshot.hasData) {
-                          debugPrint("STREAM DATA COUNT: ${snapshot.data!.length}");
-                          for (var item in snapshot.data!) {
-                            debugPrint("FOUND ITEM: ${item['title']} for user ${item['uid']}");
-                          }
-                        }
-
                         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                         
                         final activities = snapshot.data!;

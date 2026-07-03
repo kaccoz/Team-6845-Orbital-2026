@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:crumb/screens/profile_page.dart';
 import 'package:crumb/services/habit_service.dart';
 import 'package:crumb/screens/habits_page.dart';

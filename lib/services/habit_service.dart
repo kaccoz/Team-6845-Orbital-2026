@@ -362,4 +362,26 @@ class HabitService {
       }).toList();
     });
   }
+
+  Stream<List<Map<String, dynamic>>> getCombinedActivityWithNames(String myId, String buddyId) {
+    final today = getTodayString();
+
+    final myStream = firestore.collection('users').doc(myId).collection('habits')
+        .where('completedDates', arrayContains: today).snapshots();
+    final buddyStream = firestore.collection('users').doc(buddyId).collection('habits')
+        .where('completedDates', arrayContains: today).snapshots();
+
+    return StreamGroup.merge([myStream, buddyStream]).asyncMap((snapshot) async {
+      List<Map<String, dynamic>> combined = [];
+      
+      for (var doc in snapshot.docs) {
+        combined.add({
+          'title': doc['title'],
+          'uid': doc.reference.parent.parent!.id, 
+        });
+      }
+      return combined;
+    });
+  }
+  
 }
