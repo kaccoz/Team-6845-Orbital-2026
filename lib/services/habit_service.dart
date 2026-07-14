@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:async/async.dart';
+import 'package:rxdart/rxdart.dart';
 
 
 class HabitService {
@@ -335,10 +336,7 @@ class HabitService {
     };
   }
 
-  Stream<List<Map<String, dynamic>>> getCombinedRecentActivity(
-    String myId,
-    String buddyId,
-  ) {
+  Stream<List<Map<String, dynamic>>> getCombinedRecentActivity(String myId, String buddyId) {
     final today = getTodayString();
 
     final myStream = firestore.collection('users').doc(myId).collection('habits')
@@ -347,20 +345,21 @@ class HabitService {
     final buddyStream = firestore.collection('users').doc(buddyId).collection('habits')
         .where('completedDates', arrayContains: today).snapshots();
 
-    return StreamZip([myStream, buddyStream]).map((snapshots) {
-      final myDocs = snapshots[0].docs;
-      final buddyDocs = snapshots[1].docs;
-
-      final allDocs = [...myDocs, ...buddyDocs];
-
-      return allDocs.map((doc) {
-        final data = doc.data();
-        return {
-          'title': data['title'] as String? ?? '',
-          'uid': doc.reference.parent.parent?.id ?? '',
-        };
-      }).toList();
-    });
+    return CombineLatestStream.combine2(
+      myStream, 
+      buddyStream, 
+      (mySnapshot, buddySnapshot) {
+        final allDocs = [...mySnapshot.docs, ...buddySnapshot.docs];
+        
+        return allDocs.map((doc) {
+          final data = doc.data();
+          return {
+            'title': data['title'] as String? ?? '',
+            'uid': doc.reference.parent.parent?.id ?? 'unknown',
+          };
+        }).toList();
+      }
+    );
   }
 
   Stream<List<Map<String, dynamic>>> getCombinedActivityWithNames(String myId, String buddyId) {
