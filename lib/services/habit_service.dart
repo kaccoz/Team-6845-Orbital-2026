@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:async/async.dart';
 import 'package:rxdart/rxdart.dart';
+import 'notif_service.dart';
 
 
 class HabitService {
@@ -55,6 +56,7 @@ class HabitService {
       'completedDates': FieldValue.arrayUnion([today])
     });
     await updateStreak();
+    await NotificationService().cancelAll();
   }
 
   Future<void> deleteHabit(String habitId) async {
