@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'habit_service.dart';
 
 ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
 
@@ -15,24 +16,32 @@ class AuthService {
   String _generateLinkCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
-    return List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
+    return List.generate(
+      6,
+      (index) => chars[random.nextInt(chars.length)],
+    ).join();
   }
 
   Future<UserCredential> signIn({
-    required String email,
-    required String password,
-  }) async {
-    return await firebaseAuth.signInWithEmailAndPassword(
-        email: email, password: password);
-  }
+  required String email,
+  required String password,
+}) async {
+  final cred = await firebaseAuth.signInWithEmailAndPassword(
+    email: email,
+    password: password,
+  );
+  await HabitService().resetHomeWidget();
+
+  return cred;
+}
 
   Future<UserCredential> createAccount({
     required String email,
     required String password,
   }) async {
-    UserCredential userCredential = await firebaseAuth.createUserWithEmailAndPassword(
-        email: email, password: password);
-    
+    UserCredential userCredential = await firebaseAuth
+        .createUserWithEmailAndPassword(email: email, password: password);
+
     User? newUSer = userCredential.user;
 
     if (newUSer != null) {
@@ -41,31 +50,36 @@ class AuthService {
       await newUSer.reload();
 
       String uniqueCode = _generateLinkCode();
-      await FirebaseFirestore.instance.collection('users').doc(newUSer.uid).set({
-        'username': defaultUsername,
-        'email': email,
-        'linkUID': uniqueCode,
-        'buddyUid': null, 
-        'createdAt': FieldValue.serverTimestamp(),
-      });    
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(newUSer.uid)
+          .set({
+            'username': defaultUsername,
+            'email': email,
+            'linkUID': uniqueCode,
+            'buddyUid': null,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+      await HabitService().resetHomeWidget();
     }
 
     return userCredential;
   }
 
   Future<void> signOut() async {
-    await firebaseAuth.signOut();
-  }
+  await HabitService().resetHomeWidget();
 
-  Future<void> resetPassword({
-    required String email,
-  }) async {
+  await Future.delayed(Duration(milliseconds: 300));
+
+  await firebaseAuth.signOut();
+}
+
+  Future<void> resetPassword({required String email}) async {
     await firebaseAuth.sendPasswordResetEmail(email: email);
   }
 
-  Future<void> updateUsername ({
-    required String username,
-  }) async {
+  Future<void> updateUsername({required String username}) async {
     await currentUser!.updateDisplayName(username);
 
     await FirebaseFirestore.instance
@@ -78,11 +92,17 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    AuthCredential credential = EmailAuthProvider.credential(email: email, password: password);
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: email,
+      password: password,
+    );
     await currentUser!.reauthenticateWithCredential(credential);
 
-    await FirebaseFirestore.instance.collection('users').doc(currentUser!.uid).delete();
-
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser!.uid)
+        .delete();
+    await HabitService().resetHomeWidget();
     await currentUser!.delete();
     await firebaseAuth.signOut();
   }
@@ -92,38 +112,42 @@ class AuthService {
     required String newPassword,
     required String email,
   }) async {
-    AuthCredential credential = 
-        EmailAuthProvider.credential(email: email, password: currentPassword);
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
     await currentUser!.reauthenticateWithCredential(credential);
     await currentUser!.updatePassword(newPassword);
   }
 
- Future<void> changeEmail({
+  Future<void> changeEmail({
     required String currentEmail,
     required String newEmail,
     required String password,
   }) async {
-    AuthCredential credential = 
-        EmailAuthProvider.credential(email: currentEmail, password: password);
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: currentEmail,
+      password: password,
+    );
     await currentUser!.reauthenticateWithCredential(credential);
-    await currentUser!.verifyBeforeUpdateEmail(newEmail); 
+    await currentUser!.verifyBeforeUpdateEmail(newEmail);
 
     await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUser!.uid)
-      .update({'email': newEmail});
+        .collection('users')
+        .doc(currentUser!.uid)
+        .update({'email': newEmail});
   }
 
   Future<void> updateProfilePicture(String base64String) async {
-  if (currentUser == null) return;
+    if (currentUser == null) return;
 
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(currentUser!.uid)
-      .set({
-        'photoUrl': base64String,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser!.uid)
+        .set({
+          'photoUrl': base64String,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
   }
 
   Future<void> deleteProfilePicture() async {
@@ -132,12 +156,10 @@ class AuthService {
     await FirebaseFirestore.instance
         .collection('users')
         .doc(currentUser!.uid)
-        .update({
-          'photoUrl': FieldValue.delete(),
-        });
+        .update({'photoUrl': FieldValue.delete()});
   }
 
- Future<void> linkWithBuddy(String inputCode) async {
+  Future<void> linkWithBuddy(String inputCode) async {
     if (currentUser == null) throw Exception("You must be logged in!");
 
     final firestore = FirebaseFirestore.instance;
@@ -148,7 +170,8 @@ class AuthService {
     if (myDoc.exists) {
       final myData = myDoc.data();
       final myOwnCode = myData?['linkUID'] ?? myData?['linkCode'];
-      if (myOwnCode != null && myOwnCode.toString().toUpperCase() == cleanCode) {
+      if (myOwnCode != null &&
+          myOwnCode.toString().toUpperCase() == cleanCode) {
         throw Exception("You cannot link with your own account!");
       }
     }

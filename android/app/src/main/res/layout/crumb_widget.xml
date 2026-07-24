@@ -1,14 +1,48 @@
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
+    <!-- Background Image -->
+    <ImageView
+        android:id="@+id/widget_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:contentDescription="widget background" />
+
+    <!-- Dark overlay -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#40000000"
+        android:src="@android:color/transparent" />
+
+    <!-- TOP TEXT -->
     <TextView
-        android:id="@+id/widget_text"
+        android:id="@+id/widget_top_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Loading..."
-        android:textSize="18sp"/>
-</LinearLayout>
+        android:text="It's been 0 days"
+        android:textColor="#78583e"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_gravity="top|center_horizontal"
+        android:gravity="center"
+        android:textAlignment="center"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:layout_marginTop="12dp" />
+
+    <!-- BOTTOM TEXT -->
+    <TextView
+        android:id="@+id/widget_bottom_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0 day streak"
+        android:textColor="#78583e"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="40dp" />
+
+</FrameLayout>

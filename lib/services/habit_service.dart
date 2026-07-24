@@ -28,8 +28,16 @@ class HabitService {
     } catch (e) {}
   }
 
-  Future<void> updateHomeWidget(int streak) async {
+  Future<void> updateHomeWidget(int streak, int lastDoneMillis) async {
+    print("📦 Sending to widget:");
+    print("streak: $streak");
+    print("lastDoneMillis: $lastDoneMillis");
+
     await HomeWidget.saveWidgetData<int>('streak', streak);
+    await HomeWidget.saveWidgetData<String>(
+      'last_done',
+      lastDoneMillis.toString(),
+    );
 
     await HomeWidget.updateWidget(
       name: 'CrumbWidgetProvider',
@@ -84,6 +92,16 @@ class HabitService {
     });
 
     await _syncGeofences();
+  }
+
+  Future<void> resetHomeWidget() async {
+    await HomeWidget.saveWidgetData<int>('streak', 0);
+    await HomeWidget.saveWidgetData<String>('last_done', "0");
+
+    await HomeWidget.updateWidget(
+      name: 'CrumbWidgetProvider',
+      androidName: 'CrumbWidgetProvider',
+    );
   }
 
   Future<void> markHabitDoneToday(String habitId) async {
@@ -149,6 +167,11 @@ class HabitService {
     return false;
   }
 
+  DateTime _parseLocalDate(String dateStr) {
+    final parts = dateStr.split('-').map(int.parse).toList();
+    return DateTime(parts[0], parts[1], parts[2]);
+  }
+
   int calculateCurrentStreak(List<String> dates) {
     if (dates.isEmpty) return 0;
 
@@ -157,12 +180,8 @@ class HabitService {
     DateTime today = DateTime.now();
     DateTime todayMidnight = DateTime(today.year, today.month, today.day);
 
-    final lastDate = DateTime.parse(sortedDates.last);
-    final lastCompletedMidnight = DateTime(
-      lastDate.year,
-      lastDate.month,
-      lastDate.day,
-    );
+    // Use local date parsing
+    final lastCompletedMidnight = _parseLocalDate(sortedDates.last);
 
     final gapInDays = todayMidnight.difference(lastCompletedMidnight).inDays;
 
@@ -177,8 +196,7 @@ class HabitService {
     int streak = 0;
 
     for (int i = sortedDates.length - 1; i >= 0; i--) {
-      DateTime d = DateTime.parse(sortedDates[i]);
-      DateTime checkDate = DateTime(d.year, d.month, d.day);
+      DateTime checkDate = _parseLocalDate(sortedDates[i]);
 
       if (checkDate.isAtSameMomentAs(current)) {
         streak++;
@@ -250,7 +268,22 @@ class HabitService {
     }
 
     final currentStreak = calculateCurrentStreak(dates);
-    await updateHomeWidget(currentStreak);
+    int lastDoneMillis = 0;
+
+    if (dates.isNotEmpty) {
+      final sortedDates = List<String>.from(dates)..sort();
+      final lastDate = DateTime.parse(sortedDates.last);
+
+      final lastMidnight = DateTime(
+        lastDate.year,
+        lastDate.month,
+        lastDate.day,
+      );
+
+      lastDoneMillis = lastMidnight.millisecondsSinceEpoch;
+    }
+
+    await updateHomeWidget(currentStreak, lastDoneMillis);
 
     if (currentStreak > 0 &&
         currentStreak % 10 == 0 &&
