@@ -4,7 +4,6 @@ import 'package:async/async.dart';
 import 'package:rxdart/rxdart.dart';
 import 'notif_service.dart';
 
-
 class HabitService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth auth = FirebaseAuth.instance;
@@ -21,33 +20,60 @@ class HabitService {
         "${today.day.toString().padLeft(2, '0')}";
   }
 
+  Future<void> _syncGeofences() async {
+    try {
+      final snapshot = await habits.get();
+      await NotificationService().syncHabitGeofences(snapshot.docs);
+    } catch (e) {}
+  }
+
   Future<void> addHabit(
     String title,
     String repeatType,
     List<int> daysOfWeek,
-    bool includeInStreak, 
-  ) async {
+    bool includeInStreak, {
+    bool isLocationBased = false,
+    double? latitude,
+    double? longitude,
+    String? locationName,
+  }) async {
     await habits.add({
       'title': title,
       'repeatType': repeatType,
       'daysOfWeek': daysOfWeek,
       'completedDates': [],
       'includeInStreak': includeInStreak,
+      'isLocationBased': isLocationBased,
+      'latitude': latitude,
+      'longitude': longitude,
+      'locationName': locationName,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    await _syncGeofences();
   }
 
   Future<void> updateHabit(
     String habitId,
     String title,
     String repeatType,
-    List<int> daysOfWeek,
-  ) async {
+    List<int> daysOfWeek, {
+    bool isLocationBased = false,
+    double? latitude,
+    double? longitude,
+    String? locationName,
+  }) async {
     await habits.doc(habitId).update({
       'title': title,
       'repeatType': repeatType,
       'daysOfWeek': daysOfWeek,
+      'isLocationBased': isLocationBased,
+      'latitude': latitude,
+      'longitude': longitude,
+      'locationName': locationName,
     });
+
+    await _syncGeofences();
   }
 
   Future<void> markHabitDoneToday(String habitId) async {
@@ -62,8 +88,9 @@ class HabitService {
   Future<void> deleteHabit(String habitId) async {
     await habits.doc(habitId).delete();
     await updateStreak();
-  }
 
+    await _syncGeofences();
+  }
 
   Future<void> unmarkHabitToday(String habitId) async {
     final today = getTodayString();
@@ -113,45 +140,43 @@ class HabitService {
   }
 
   int calculateCurrentStreak(List<String> dates) {
-  if (dates.isEmpty) return 0;
+    if (dates.isEmpty) return 0;
 
-  final sortedDates = List<String>.from(dates)..sort();
+    final sortedDates = List<String>.from(dates)..sort();
 
-  DateTime today = DateTime.now();
-  DateTime todayMidnight = DateTime(today.year, today.month, today.day);
+    DateTime today = DateTime.now();
+    DateTime todayMidnight = DateTime(today.year, today.month, today.day);
 
-  final lastDate = DateTime.parse(sortedDates.last);
-  final lastCompletedMidnight = DateTime(lastDate.year, lastDate.month, lastDate.day);
-  
-  final gapInDays = todayMidnight.difference(lastCompletedMidnight).inDays;
-  
-  
-  if (gapInDays > 1) {
-    return 0; 
-  }
-
-  DateTime current = sortedDates.contains(getTodayString()) 
-      ? todayMidnight 
-      : todayMidnight.subtract(const Duration(days: 1));
-
-  int streak = 0;
-
-  for (int i = sortedDates.length - 1; i >= 0; i--) {
-    DateTime d = DateTime.parse(sortedDates[i]);
-    DateTime checkDate = DateTime(d.year, d.month, d.day);
-
-    if (checkDate.isAtSameMomentAs(current)) {
-      streak++;
-      current = current.subtract(const Duration(days: 1));
-    } else if (checkDate.isBefore(current)) {
-      break;
+    final lastDate = DateTime.parse(sortedDates.last);
+    final lastCompletedMidnight = DateTime(lastDate.year, lastDate.month, lastDate.day);
+    
+    final gapInDays = todayMidnight.difference(lastCompletedMidnight).inDays;
+    
+    if (gapInDays > 1) {
+      return 0; 
     }
+
+    DateTime current = sortedDates.contains(getTodayString()) 
+        ? todayMidnight 
+        : todayMidnight.subtract(const Duration(days: 1));
+
+    int streak = 0;
+
+    for (int i = sortedDates.length - 1; i >= 0; i--) {
+      DateTime d = DateTime.parse(sortedDates[i]);
+      DateTime checkDate = DateTime(d.year, d.month, d.day);
+
+      if (checkDate.isAtSameMomentAs(current)) {
+        streak++;
+        current = current.subtract(const Duration(days: 1));
+      } else if (checkDate.isBefore(current)) {
+        break;
+      }
+    }
+
+    return streak;
   }
 
-  return streak;
-}
-
-  
   Future<void> updateStreak() async {
     final uid = auth.currentUser!.uid;
     final today = getTodayString();
@@ -183,7 +208,6 @@ class HabitService {
     }
 
     if (todaysHabits.isEmpty) {
-    
       if (!dates.contains(today)) {
         dates.add(today);
       }
@@ -244,7 +268,6 @@ class HabitService {
         .snapshots();
   }
 
- 
   Future<int> getStreakCount(String uid) async {
     final doc = await firestore
         .collection('users')
@@ -384,5 +407,4 @@ class HabitService {
       return combined;
     });
   }
-  
 }

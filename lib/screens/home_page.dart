@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:crumb/screens/profile_page.dart';
 import 'package:crumb/services/habit_service.dart';
+import 'package:crumb/services/notif_service.dart';
 import 'package:crumb/screens/habits_page.dart';
 import 'package:dashed_progress_bar/dashed_progress_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +10,7 @@ import 'package:crumb/widgets/top_header.dart';
 import 'package:crumb/screens/connect_buddy_page.dart';
 import 'package:crumb/widgets/app_colors.dart';
 import 'package:crumb/screens/goalsetup_page.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,6 +21,15 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final HabitService habitService = HabitService();
+
+  @override
+  void initState() {
+    super.initState();
+    
+    HabitService().habits.get().then((snapshot) {
+      NotificationService().syncHabitGeofences(snapshot.docs);
+    });
+  }
 
   final List<String> weekdaysList = [
     'Monday',
@@ -47,6 +58,11 @@ class _HomePageState extends State<HomePage> {
 
   void showAddHabitDialog(BuildContext context) {
     bool includeInStreak = false;
+    bool isLocationBased = false;
+    double? latitude;
+    double? longitude;
+    bool isLoadingLocation = false;
+
     final TextEditingController habitController = TextEditingController();
     String repeatType = 'daily';
     List<int> selectedDays = [];
@@ -66,72 +82,142 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: habitController,
-                    decoration: const InputDecoration(labelText: "Habit"),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButton<String>(
-                    value: repeatType,
-                    items: const [
-                      DropdownMenuItem(value: 'daily', child: Text("Everyday")),
-                      DropdownMenuItem(
-                        value: 'weekly',
-                        child: Text("Specific Days"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: habitController,
+                      decoration: const InputDecoration(labelText: "Habit"),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButton<String>(
+                      value: repeatType,
+                      items: const [
+                        DropdownMenuItem(value: 'daily', child: Text("Everyday")),
+                        DropdownMenuItem(
+                          value: 'weekly',
+                          child: Text("Specific Days"),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() {
+                          repeatType = value!;
+                        });
+                      },
+                    ),
+                    if (repeatType == 'weekly') ...[
+                      Wrap(
+                        spacing: 6,
+                        children: List.generate(weekdaysList.length, (index) {
+                          final int dayValue = index + 1;
+                          return FilterChip(
+                            label: Text(weekdaysList[index]),
+                            selected: selectedDays.contains(dayValue),
+                            onSelected: (selected) {
+                              setDialogState(() {
+                                if (selected) {
+                                  selectedDays.add(dayValue);
+                                } else {
+                                  selectedDays.remove(dayValue);
+                                }
+                              });
+                            },
+                          );
+                        }),
                       ),
                     ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        repeatType = value!;
-                      });
-                    },
-                  ),
-                  if (repeatType == 'weekly') ...[
-                    Wrap(
-                      spacing: 6,
-                      children: List.generate(weekdaysList.length, (index) {
-                        final int dayValue = index + 1;
-                        return FilterChip(
-                          label: Text(weekdaysList[index]),
-                          selected: selectedDays.contains(dayValue),
-                          onSelected: (selected) {
+
+                    const SizedBox(height: 10),
+
+                    SwitchListTile(
+                      title: const Text(
+                        "Include in streak",
+                        style: TextStyle(color: AppColors.primaryBrown),
+                      ),
+                      activeColor: AppColors.primaryBrown,
+                      value: includeInStreak,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          includeInStreak = value;
+                        });
+                      },
+                    ),
+
+                    SwitchListTile(
+                      title: const Text(
+                        "Remind at current location",
+                        style: TextStyle(color: AppColors.primaryBrown),
+                      ),
+                      activeColor: AppColors.primaryBrown,
+                      value: isLocationBased,
+                      onChanged: (value) async {
+                        if (value) {
+                          setDialogState(() => isLoadingLocation = true);
+                          try {
+                            // Check system GPS hardware status
+                            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                            if (!serviceEnabled) {
+                              setDialogState(() {
+                                isLocationBased = false;
+                                isLoadingLocation = false;
+                                errorMessage = 'Please turn on GPS on your device.';
+                              });
+                              return;
+                            }
+
+                            // Check and request permissions
+                            LocationPermission permission = await Geolocator.checkPermission();
+                            if (permission == LocationPermission.denied) {
+                              permission = await Geolocator.requestPermission();
+                            }
+                            if (permission == LocationPermission.whileInUse ||
+                                permission == LocationPermission.always) {
+                              Position pos = await Geolocator.getCurrentPosition();
+                              setDialogState(() {
+                                latitude = pos.latitude;
+                                longitude = pos.longitude;
+                                isLocationBased = true;
+                                isLoadingLocation = false;
+                                errorMessage = '';
+                              });
+                            } else {
+                              setDialogState(() {
+                                isLocationBased = false;
+                                isLoadingLocation = false;
+                                errorMessage = 'Location permission required.';
+                              });
+                            }
+                          } catch (_) {
                             setDialogState(() {
-                              if (selected) {
-                                selectedDays.add(dayValue);
-                              } else {
-                                selectedDays.remove(dayValue);
-                              }
+                              isLocationBased = false;
+                              isLoadingLocation = false;
+                              errorMessage = 'Could not fetch location.';
                             });
-                          },
-                        );
-                      }),
+                          }
+                        } else {
+                          setDialogState(() {
+                            isLocationBased = false;
+                            latitude = null;
+                            longitude = null;
+                          });
+                        }
+                      },
                     ),
+
+                    if (isLoadingLocation)
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(),
+                      ),
+
+                    if (errorMessage.isNotEmpty)
+                      Text(
+                        errorMessage,
+                        style: const TextStyle(color: AppColors.warningRed),
+                      ),
                   ],
-
-                  const SizedBox(height: 10),
-
-                  SwitchListTile(
-                    title: const Text(
-                      "Include in streak",
-                      style: TextStyle(color: AppColors.primaryBrown),
-                    ),
-                    activeColor: AppColors.primaryBrown,
-                    value: includeInStreak,
-                    onChanged: (value) {
-                      setDialogState(() {
-                        includeInStreak = value;
-                      });
-                    },
-                  ),
-                  if (errorMessage.isNotEmpty)
-                    Text(
-                      errorMessage,
-                      style: const TextStyle(color: AppColors.warningRed),
-                    ),
-                ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -151,6 +237,9 @@ class _HomePageState extends State<HomePage> {
                       repeatType,
                       selectedDays,
                       includeInStreak,
+                      isLocationBased: isLocationBased,
+                      latitude: latitude,
+                      longitude: longitude,
                     );
                     Navigator.pop(context);
                   },
@@ -215,6 +304,10 @@ class _HomePageState extends State<HomePage> {
 
     String repeatType = data['repeatType'] ?? 'daily';
     List<int> selectedDays = List<int>.from(data['daysOfWeek'] ?? []);
+    bool isLocationBased = data['isLocationBased'] ?? false;
+    double? latitude = data['latitude'];
+    double? longitude = data['longitude'];
+    bool isLoadingLocation = false;
     String errorMessage = '';
 
     showDialog(
@@ -231,58 +324,128 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: habitController,
-                    decoration: const InputDecoration(labelText: "Habit"),
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButton<String>(
-                    value: repeatType,
-                    items: const [
-                      DropdownMenuItem(value: 'daily', child: Text("Everyday")),
-                      DropdownMenuItem(
-                        value: 'weekly',
-                        child: Text("Specific Days"),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: habitController,
+                      decoration: const InputDecoration(labelText: "Habit"),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButton<String>(
+                      value: repeatType,
+                      items: const [
+                        DropdownMenuItem(value: 'daily', child: Text("Everyday")),
+                        DropdownMenuItem(
+                          value: 'weekly',
+                          child: Text("Specific Days"),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() {
+                          repeatType = value!;
+                        });
+                      },
+                    ),
+                    if (repeatType == 'weekly')
+                      Wrap(
+                        spacing: 6,
+                        children: List.generate(weekdaysList.length, (index) {
+                          final int dayValue = index + 1;
+                          return FilterChip(
+                            label: Text(weekdaysList[index]),
+                            selected: selectedDays.contains(dayValue),
+                            onSelected: (selected) {
+                              setDialogState(() {
+                                if (selected) {
+                                  selectedDays.add(dayValue);
+                                } else {
+                                  selectedDays.remove(dayValue);
+                                }
+                              });
+                            },
+                          );
+                        }),
                       ),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        repeatType = value!;
-                      });
-                    },
-                  ),
-                  if (repeatType == 'weekly')
-                    Wrap(
-                      spacing: 6,
-                      children: List.generate(weekdaysList.length, (index) {
-                        final int dayValue = index + 1;
-                        return FilterChip(
-                          label: Text(weekdaysList[index]),
-                          selected: selectedDays.contains(dayValue),
-                          onSelected: (selected) {
+
+                    SwitchListTile(
+                      title: const Text(
+                        "Remind at current location",
+                        style: TextStyle(color: AppColors.primaryBrown),
+                      ),
+                      activeColor: AppColors.primaryBrown,
+                      value: isLocationBased,
+                      onChanged: (value) async {
+                        if (value) {
+                          setDialogState(() => isLoadingLocation = true);
+                          try {
+                            // Check system GPS hardware status
+                            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                            if (!serviceEnabled) {
+                              setDialogState(() {
+                                isLocationBased = false;
+                                isLoadingLocation = false;
+                                errorMessage = 'Please turn on GPS on your device.';
+                              });
+                              return;
+                            }
+
+                            // Check and request permissions
+                            LocationPermission permission = await Geolocator.checkPermission();
+                            if (permission == LocationPermission.denied) {
+                              permission = await Geolocator.requestPermission();
+                            }
+                            if (permission == LocationPermission.whileInUse ||
+                                permission == LocationPermission.always) {
+                              Position pos = await Geolocator.getCurrentPosition();
+                              setDialogState(() {
+                                latitude = pos.latitude;
+                                longitude = pos.longitude;
+                                isLocationBased = true;
+                                isLoadingLocation = false;
+                                errorMessage = '';
+                              });
+                            } else {
+                              setDialogState(() {
+                                isLocationBased = false;
+                                isLoadingLocation = false;
+                                errorMessage = 'Location permission required.';
+                              });
+                            }
+                          } catch (_) {
                             setDialogState(() {
-                              if (selected) {
-                                selectedDays.add(dayValue);
-                              } else {
-                                selectedDays.remove(dayValue);
-                              }
+                              isLocationBased = false;
+                              isLoadingLocation = false;
+                              errorMessage = 'Could not fetch location.';
                             });
-                          },
-                        );
-                      }),
+                          }
+                        } else {
+                          setDialogState(() {
+                            isLocationBased = false;
+                            latitude = null;
+                            longitude = null;
+                          });
+                        }
+                      },
                     ),
-                  if (errorMessage.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        errorMessage,
-                        style: const TextStyle(color: AppColors.warningRed),
+
+                    if (isLoadingLocation)
+                      const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(),
                       ),
-                    ),
-                ],
+
+                    if (errorMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          errorMessage,
+                          style: const TextStyle(color: AppColors.warningRed),
+                        ),
+                      ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -302,6 +465,9 @@ class _HomePageState extends State<HomePage> {
                       habitController.text.trim(),
                       repeatType,
                       selectedDays,
+                      isLocationBased: isLocationBased,
+                      latitude: latitude,
+                      longitude: longitude,
                     );
                     Navigator.pop(context);
                   },
@@ -693,6 +859,18 @@ class _HomePageState extends State<HomePage> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                                  subtitle: data['isLocationBased'] == true
+                                      ? const Row(
+                                          children: [
+                                            Icon(Icons.location_on, size: 12, color: AppColors.primaryBrown),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              "Location reminder active",
+                                              style: TextStyle(fontSize: 11, color: AppColors.primaryBrown),
+                                            ),
+                                          ],
+                                        )
+                                      : null,
                                   leading: Checkbox(
                                     value: isDoneToday,
                                     activeColor: AppColors.primaryBrown,
