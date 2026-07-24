@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:async/async.dart';
 import 'package:rxdart/rxdart.dart';
 import 'notif_service.dart';
+import 'package:home_widget/home_widget.dart';
 
 class HabitService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -25,6 +26,15 @@ class HabitService {
       final snapshot = await habits.get();
       await NotificationService().syncHabitGeofences(snapshot.docs);
     } catch (e) {}
+  }
+
+  Future<void> updateHomeWidget(int streak) async {
+    await HomeWidget.saveWidgetData<int>('streak', streak);
+
+    await HomeWidget.updateWidget(
+      name: 'CrumbWidgetProvider',
+      androidName: 'CrumbWidgetProvider',
+    );
   }
 
   Future<void> addHabit(
@@ -79,7 +89,7 @@ class HabitService {
   Future<void> markHabitDoneToday(String habitId) async {
     final today = getTodayString();
     await habits.doc(habitId).update({
-      'completedDates': FieldValue.arrayUnion([today])
+      'completedDates': FieldValue.arrayUnion([today]),
     });
     await updateStreak();
     await NotificationService().cancelAll();
@@ -95,7 +105,7 @@ class HabitService {
   Future<void> unmarkHabitToday(String habitId) async {
     final today = getTodayString();
     await habits.doc(habitId).update({
-      'completedDates': FieldValue.arrayRemove([today])
+      'completedDates': FieldValue.arrayRemove([today]),
     });
     await updateStreak();
   }
@@ -127,7 +137,7 @@ class HabitService {
   }
 
   bool isHabitScheduledToday(Map<String, dynamic> data) {
-    final today = DateTime.now().weekday; 
+    final today = DateTime.now().weekday;
 
     if (data['repeatType'] == 'daily') return true;
 
@@ -148,16 +158,20 @@ class HabitService {
     DateTime todayMidnight = DateTime(today.year, today.month, today.day);
 
     final lastDate = DateTime.parse(sortedDates.last);
-    final lastCompletedMidnight = DateTime(lastDate.year, lastDate.month, lastDate.day);
-    
+    final lastCompletedMidnight = DateTime(
+      lastDate.year,
+      lastDate.month,
+      lastDate.day,
+    );
+
     final gapInDays = todayMidnight.difference(lastCompletedMidnight).inDays;
-    
+
     if (gapInDays > 1) {
-      return 0; 
+      return 0;
     }
 
-    DateTime current = sortedDates.contains(getTodayString()) 
-        ? todayMidnight 
+    DateTime current = sortedDates.contains(getTodayString())
+        ? todayMidnight
         : todayMidnight.subtract(const Duration(days: 1));
 
     int streak = 0;
@@ -186,7 +200,8 @@ class HabitService {
 
     final todaysHabits = docs.where((doc) {
       final data = doc.data();
-      return (data['includeInStreak'] ?? false) == true && isHabitScheduledToday(data);
+      return (data['includeInStreak'] ?? false) == true &&
+          isHabitScheduledToday(data);
     }).toList();
 
     final ref = firestore
@@ -235,8 +250,11 @@ class HabitService {
     }
 
     final currentStreak = calculateCurrentStreak(dates);
+    await updateHomeWidget(currentStreak);
 
-    if (currentStreak > 0 && currentStreak % 10 == 0 && lastRewardedDate != today) {
+    if (currentStreak > 0 &&
+        currentStreak % 10 == 0 &&
+        lastRewardedDate != today) {
       graceDays += 1;
       lastRewardedDate = today;
     }
@@ -301,7 +319,7 @@ class HabitService {
     final today = DateTime.now();
     final todayString = getTodayString();
 
-    final startOfWeek = today.subtract(Duration(days: today.weekday - 1)); 
+    final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
     final weekDates = List.generate(7, (i) {
       final d = startOfWeek.add(Duration(days: i));
       return "${d.year.toString().padLeft(4, '0')}-"
@@ -339,7 +357,9 @@ class HabitService {
       if (!(data['includeInStreak'] ?? false)) continue;
 
       List completedDates = List.from(data['completedDates'] ?? []);
-      weeklyCompleted += completedDates.where((date) => weekDates.contains(date)).length;
+      weeklyCompleted += completedDates
+          .where((date) => weekDates.contains(date))
+          .length;
 
       if (data['repeatType'] == 'daily') {
         weeklyTarget += 7;
@@ -361,47 +381,70 @@ class HabitService {
     };
   }
 
-  Stream<List<Map<String, dynamic>>> getCombinedRecentActivity(String myId, String buddyId) {
+  Stream<List<Map<String, dynamic>>> getCombinedRecentActivity(
+    String myId,
+    String buddyId,
+  ) {
     final today = getTodayString();
 
-    final myStream = firestore.collection('users').doc(myId).collection('habits')
-        .where('completedDates', arrayContains: today).snapshots();
-        
-    final buddyStream = firestore.collection('users').doc(buddyId).collection('habits')
-        .where('completedDates', arrayContains: today).snapshots();
+    final myStream = firestore
+        .collection('users')
+        .doc(myId)
+        .collection('habits')
+        .where('completedDates', arrayContains: today)
+        .snapshots();
 
-    return CombineLatestStream.combine2(
-      myStream, 
-      buddyStream, 
-      (mySnapshot, buddySnapshot) {
-        final allDocs = [...mySnapshot.docs, ...buddySnapshot.docs];
-        
-        return allDocs.map((doc) {
-          final data = doc.data();
-          return {
-            'title': data['title'] as String? ?? '',
-            'uid': doc.reference.parent.parent?.id ?? 'unknown',
-          };
-        }).toList();
-      }
-    );
+    final buddyStream = firestore
+        .collection('users')
+        .doc(buddyId)
+        .collection('habits')
+        .where('completedDates', arrayContains: today)
+        .snapshots();
+
+    return CombineLatestStream.combine2(myStream, buddyStream, (
+      mySnapshot,
+      buddySnapshot,
+    ) {
+      final allDocs = [...mySnapshot.docs, ...buddySnapshot.docs];
+
+      return allDocs.map((doc) {
+        final data = doc.data();
+        return {
+          'title': data['title'] as String? ?? '',
+          'uid': doc.reference.parent.parent?.id ?? 'unknown',
+        };
+      }).toList();
+    });
   }
 
-  Stream<List<Map<String, dynamic>>> getCombinedActivityWithNames(String myId, String buddyId) {
+  Stream<List<Map<String, dynamic>>> getCombinedActivityWithNames(
+    String myId,
+    String buddyId,
+  ) {
     final today = getTodayString();
 
-    final myStream = firestore.collection('users').doc(myId).collection('habits')
-        .where('completedDates', arrayContains: today).snapshots();
-    final buddyStream = firestore.collection('users').doc(buddyId).collection('habits')
-        .where('completedDates', arrayContains: today).snapshots();
+    final myStream = firestore
+        .collection('users')
+        .doc(myId)
+        .collection('habits')
+        .where('completedDates', arrayContains: today)
+        .snapshots();
+    final buddyStream = firestore
+        .collection('users')
+        .doc(buddyId)
+        .collection('habits')
+        .where('completedDates', arrayContains: today)
+        .snapshots();
 
-    return StreamGroup.merge([myStream, buddyStream]).asyncMap((snapshot) async {
+    return StreamGroup.merge([myStream, buddyStream]).asyncMap((
+      snapshot,
+    ) async {
       List<Map<String, dynamic>> combined = [];
-      
+
       for (var doc in snapshot.docs) {
         combined.add({
           'title': doc['title'],
-          'uid': doc.reference.parent.parent!.id, 
+          'uid': doc.reference.parent.parent!.id,
         });
       }
       return combined;
