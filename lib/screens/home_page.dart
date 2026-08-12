@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    
+
     HabitService().habits.get().then((snapshot) {
       NotificationService().syncHabitGeofences(snapshot.docs);
     });
@@ -94,7 +94,10 @@ class _HomePageState extends State<HomePage> {
                     DropdownButton<String>(
                       value: repeatType,
                       items: const [
-                        DropdownMenuItem(value: 'daily', child: Text("Everyday")),
+                        DropdownMenuItem(
+                          value: 'daily',
+                          child: Text("Everyday"),
+                        ),
                         DropdownMenuItem(
                           value: 'weekly',
                           child: Text("Specific Days"),
@@ -156,24 +159,28 @@ class _HomePageState extends State<HomePage> {
                           setDialogState(() => isLoadingLocation = true);
                           try {
                             // Check system GPS hardware status
-                            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                            bool serviceEnabled =
+                                await Geolocator.isLocationServiceEnabled();
                             if (!serviceEnabled) {
                               setDialogState(() {
                                 isLocationBased = false;
                                 isLoadingLocation = false;
-                                errorMessage = 'Please turn on GPS on your device.';
+                                errorMessage =
+                                    'Please turn on GPS on your device.';
                               });
                               return;
                             }
 
                             // Check and request permissions
-                            LocationPermission permission = await Geolocator.checkPermission();
+                            LocationPermission permission =
+                                await Geolocator.checkPermission();
                             if (permission == LocationPermission.denied) {
                               permission = await Geolocator.requestPermission();
                             }
                             if (permission == LocationPermission.whileInUse ||
                                 permission == LocationPermission.always) {
-                              Position pos = await Geolocator.getCurrentPosition();
+                              Position pos =
+                                  await Geolocator.getCurrentPosition();
                               setDialogState(() {
                                 latitude = pos.latitude;
                                 longitude = pos.longitude;
@@ -231,9 +238,25 @@ class _HomePageState extends State<HomePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBrown,
                   ),
-                  onPressed: () {
-                    habitService.addHabit(
-                      habitController.text.trim(),
+                  onPressed: () async {
+                    final habitName = habitController.text.trim();
+
+                    if (habitName.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Please enter a habit name.';
+                      });
+                      return;
+                    }
+
+                    if (repeatType == 'weekly' && selectedDays.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Please select at least one day.';
+                      });
+                      return;
+                    }
+
+                    await habitService.addHabit(
+                      habitName,
                       repeatType,
                       selectedDays,
                       includeInStreak,
@@ -241,7 +264,10 @@ class _HomePageState extends State<HomePage> {
                       latitude: latitude,
                       longitude: longitude,
                     );
-                    Navigator.pop(context);
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
                   },
                   child: const Text(
                     "Add",
@@ -336,7 +362,10 @@ class _HomePageState extends State<HomePage> {
                     DropdownButton<String>(
                       value: repeatType,
                       items: const [
-                        DropdownMenuItem(value: 'daily', child: Text("Everyday")),
+                        DropdownMenuItem(
+                          value: 'daily',
+                          child: Text("Everyday"),
+                        ),
                         DropdownMenuItem(
                           value: 'weekly',
                           child: Text("Specific Days"),
@@ -381,24 +410,28 @@ class _HomePageState extends State<HomePage> {
                           setDialogState(() => isLoadingLocation = true);
                           try {
                             // Check system GPS hardware status
-                            bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                            bool serviceEnabled =
+                                await Geolocator.isLocationServiceEnabled();
                             if (!serviceEnabled) {
                               setDialogState(() {
                                 isLocationBased = false;
                                 isLoadingLocation = false;
-                                errorMessage = 'Please turn on GPS on your device.';
+                                errorMessage =
+                                    'Please turn on GPS on your device.';
                               });
                               return;
                             }
 
                             // Check and request permissions
-                            LocationPermission permission = await Geolocator.checkPermission();
+                            LocationPermission permission =
+                                await Geolocator.checkPermission();
                             if (permission == LocationPermission.denied) {
                               permission = await Geolocator.requestPermission();
                             }
                             if (permission == LocationPermission.whileInUse ||
                                 permission == LocationPermission.always) {
-                              Position pos = await Geolocator.getCurrentPosition();
+                              Position pos =
+                                  await Geolocator.getCurrentPosition();
                               setDialogState(() {
                                 latitude = pos.latitude;
                                 longitude = pos.longitude;
@@ -459,17 +492,36 @@ class _HomePageState extends State<HomePage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBrown,
                   ),
-                  onPressed: () {
-                    habitService.updateHabit(
+                  onPressed: () async {
+                    final habitName = habitController.text.trim();
+
+                    if (habitName.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Habit name cannot be empty.';
+                      });
+                      return;
+                    }
+
+                    if (repeatType == 'weekly' && selectedDays.isEmpty) {
+                      setDialogState(() {
+                        errorMessage = 'Please select at least one day.';
+                      });
+                      return;
+                    }
+
+                    await habitService.updateHabit(
                       habitId,
-                      habitController.text.trim(),
+                      habitName,
                       repeatType,
                       selectedDays,
                       isLocationBased: isLocationBased,
                       latitude: latitude,
                       longitude: longitude,
                     );
-                    Navigator.pop(context);
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
                   },
                   child: const Text(
                     "Update",
@@ -862,11 +914,18 @@ class _HomePageState extends State<HomePage> {
                                   subtitle: data['isLocationBased'] == true
                                       ? const Row(
                                           children: [
-                                            Icon(Icons.location_on, size: 12, color: AppColors.primaryBrown),
+                                            Icon(
+                                              Icons.location_on,
+                                              size: 12,
+                                              color: AppColors.primaryBrown,
+                                            ),
                                             SizedBox(width: 4),
                                             Text(
                                               "Location reminder active",
-                                              style: TextStyle(fontSize: 11, color: AppColors.primaryBrown),
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.primaryBrown,
+                                              ),
                                             ),
                                           ],
                                         )
