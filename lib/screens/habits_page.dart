@@ -39,54 +39,69 @@ class HabitsPage extends StatelessWidget {
                     .map((e) => DateTime.parse(e))
                     .toList();
 
-                return Column(
-                  children: [
-                    CleanCalendar(
-                      enableDenseViewForDates: true,
-                      enableDenseSplashForDates: true,
-                      datesForStreaks: datesForStreaks,
-                      currentDateProperties: DatesProperties(
-                        datesDecoration: DatesDecoration(
-                          datesBorderRadius: 1000,
-                          datesBackgroundColor: Colors.transparent,
-                          datesBorderColor: Colors.green,
-                          datesTextColor: Colors.black,
-                        ),
-                      ),
-                      generalDatesProperties: DatesProperties(
-                        datesDecoration: DatesDecoration(
-                          datesBorderRadius: 1000,
-                          datesBackgroundColor: Colors.transparent,
-                          datesBorderColor: Colors.transparent,
-                          datesTextColor: Colors.black,
-                        ),
-                      ),
-                      streakDatesProperties: DatesProperties(
-                        datesDecoration: DatesDecoration(
-                          datesBorderRadius: 1000,
-                          datesBackgroundColor: Colors.green,
-                          datesBorderColor: Colors.green,
-                          datesTextColor: Colors.white,
-                        ),
-                      ),
-                      leadingTrailingDatesProperties: DatesProperties(
-                        datesDecoration: DatesDecoration(
-                          datesBorderRadius: 1000,
-                          datesBackgroundColor: Colors.transparent,
-                          datesBorderColor: Colors.transparent,
-                          datesTextColor: Colors.grey,
-                        ),
-                      ),
+                return SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: MediaQuery.of(context).size.width * 0.02,
                     ),
+                    child: Column(
+                      children: [
+                        CleanCalendar(
+                          enableDenseViewForDates: true,
+                          enableDenseSplashForDates: true,
+                          datesForStreaks: datesForStreaks,
+                          currentDateProperties: DatesProperties(
+                            datesDecoration: DatesDecoration(
+                              datesBorderRadius: 1000,
+                              datesBackgroundColor: Colors.transparent,
+                              datesBorderColor: Colors.green,
+                              datesTextColor: Colors.black,
+                            ),
+                          ),
+                          generalDatesProperties: DatesProperties(
+                            datesDecoration: DatesDecoration(
+                              datesBorderRadius: 1000,
+                              datesBackgroundColor: Colors.transparent,
+                              datesBorderColor: Colors.transparent,
+                              datesTextColor: Colors.black,
+                            ),
+                          ),
+                          streakDatesProperties: DatesProperties(
+                            datesDecoration: DatesDecoration(
+                              datesBorderRadius: 1000,
+                              datesBackgroundColor: Colors.green,
+                              datesBorderColor: Colors.green,
+                              datesTextColor: Colors.white,
+                            ),
+                          ),
+                          leadingTrailingDatesProperties: DatesProperties(
+                            datesDecoration: DatesDecoration(
+                              datesBorderRadius: 1000,
+                              datesBackgroundColor: Colors.transparent,
+                              datesBorderColor: Colors.transparent,
+                              datesTextColor: Colors.grey,
+                            ),
+                          ),
+                        ),
 
-                    const SizedBox(height: 30),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.03,
+                        ),
 
-                    _buildGraceDaysWidget(doc),
+                        _buildGraceDaysWidget(doc),
 
-                    const SizedBox(height: 0),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.02,
+                        ),
 
-                    _buildStatsSection(),
-                  ],
+                        _buildStatsSection(),
+
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.03,
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
@@ -194,11 +209,18 @@ class HabitsPage extends StatelessWidget {
     return FutureBuilder<Map<String, dynamic>>(
       future: habitService.getDailyStats(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox.shrink();
+        if (!snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
         final stats = snapshot.data!;
+        final screenWidth = MediaQuery.of(context).size.width;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.05,
+            vertical: 20,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -210,27 +232,36 @@ class HabitsPage extends StatelessWidget {
                   color: AppColors.primaryBrown,
                 ),
               ),
+
               const SizedBox(height: 15),
+
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildStatCard(
-                    "${stats['completed']}",
-                    "out of your ${stats['total']} streak tasks have been marked completed today!",
-                    
+                  Expanded(
+                    child: _buildStatCard(
+                      "${stats['completed']}",
+                      "out of your ${stats['total']} streak tasks have been marked completed today!",
+                    ),
                   ),
-                  const SizedBox(width: 15),
-                
-                  _buildStatCard(
-                    "${stats['weeklyCompleted']}",
-                    " tasks checked off this week",
-                   
+
+                  SizedBox(width: screenWidth * 0.04),
+
+                  Expanded(
+                    child: _buildStatCard(
+                      "${stats['weeklyCompleted']}",
+                      "tasks checked off this week",
+                    ),
                   ),
                 ],
               ),
+
               const SizedBox(height: 20),
+
               const Center(
                 child: Text(
                   "consistency is the quiet engine of success.",
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontStyle: FontStyle.italic,
                     color: AppColors.primaryBrown,
@@ -245,35 +276,34 @@ class HabitsPage extends StatelessWidget {
   }
 
   Widget _buildStatCard(String number, String text) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.cardColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            CircleAvatar(
-              backgroundColor: AppColors.primaryBrown,
-              child: Text(
-                number,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            backgroundColor: AppColors.primaryBrown,
+            child: Text(
+              number,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
+          ),
 
-            const SizedBox(height: 10),
+          const SizedBox(height: 10),
 
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: Colors.white),
-            ),
-          ],
-        ),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
