@@ -47,7 +47,7 @@ class CrumbWidgetProvider : HomeWidgetProvider() {
                 }
                 // Active streak
                 else -> {
-                    message = "You're on fire!"
+                    message = "You're in orbit!"
                     imageRes = R.drawable.fire_state
                 }
             }
